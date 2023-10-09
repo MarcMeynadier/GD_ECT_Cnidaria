@@ -1,1 +1,1 @@
-*.ipynb filter=lfs diff=lfs merge=lfs -text
+py_scripts/ScanpyProcessing/*.ipynb filter=lfs diff=lfs merge=lfs -text
