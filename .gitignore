@@ -5,6 +5,7 @@ pycache
 __pycache__
 py_scripts/phyloMarkers/output
 *.db
+*.R*
 *.html
 *.hmm
 *.hmm*
