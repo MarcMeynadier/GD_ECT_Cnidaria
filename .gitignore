@@ -3,7 +3,11 @@
 .DS_Store
 pycache
 __pycache__
+py_scripts/phyloMarkers/output
 *.db
+*.html
+*.hmm
+*.hmm*
 *.png
 *.txt
 *.csv
