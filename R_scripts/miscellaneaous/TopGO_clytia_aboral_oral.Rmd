@@ -1,0 +1,216 @@
+---
+title: "topGO_clytia_oral/aboral"
+author: "Julia Ramon Mateu"
+date: "2/21/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Clear workspace
+rm(list = ls())
+```
+
+#create the geneID2GO table with R
+
+```{r}
+
+library(tidyverse)
+```
+
+#Load .tsv file in table format:
+```{r}
+raw_data_chem <- read.csv("/Users/Julia/Desktop/TopGO/aboral_oral/clytia/clytia_interproscan.tsv", sep='\t', header = FALSE, col.names = c('seq_id', 'md5', 'length', 'analysis', 'signature_accession', 'signature_desciption', 'start', 'end', 'score', 'status', 'date_of_run', 'interpro_accession', 'interpro_desciption', 'go_term', 'pathway'))
+```
+
+```{r}
+geneID2GO <- raw_data_chem%>%
+        select(seq_id,go_term)%>%
+        mutate(go_term=gsub("\\|",",", go_term))%>%
+        mutate(go_term= gsub("-","",go_term)) %>%
+        rowwise() %>%
+        mutate(gene_id =  paste0(unlist(strsplit(seq_id,'\\.'))[1:2],collapse= "."))%>%
+        filter(go_term != '')%>%
+        dplyr::select(gene_id,go_term)%>%
+        group_by(gene_id)%>%
+        summarise(go_term=paste(go_term,collapse=','))%>%
+        rowwise() %>%
+   
+     mutate(go_term = paste(unique(unlist(strsplit(go_term,','))),collapse=','))
+```
+
+```{r}
+write.table(geneID2GO, "/Users/Julia/Desktop/TopGO/aboral_oral/clytia/geneID2GO.csv", sep = '\t', row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+```{r}
+geneID_interpro <- raw_data_chem%>%
+        select(seq_id,interpro_desciption)%>%
+        mutate(interpro_desciption=gsub("\\|",",", interpro_desciption))%>%
+        mutate(interpro_desciption= gsub("-","",interpro_desciption)) %>%
+        rowwise() %>%
+        mutate(gene_id =  paste0(unlist(strsplit(seq_id,'\\.'))[1:2],collapse= "."))%>%
+        filter(interpro_desciption != '')%>%
+        dplyr::select(gene_id,interpro_desciption)%>%
+        group_by(gene_id)%>%
+        summarise(interpro_desciption=paste(interpro_desciption,collapse=','))%>%
+        rowwise() %>%
+   
+     mutate(interpro_desciption = paste(unique(unlist(strsplit(interpro_desciption,','))),collapse=','))
+```
+
+
+```{r}
+  write.table(geneID_interpro, "/Users/Julia/Desktop/TopGO/aboral_oral/clytia/geneID_interpro.tsv", sep = '\t', row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+##GO enrichment analysis with TopGO
+
+```{r}
+library(topGO)
+#library(simplifyEnrichment)
+#library(MatrixGenerics) # for the rowmin function
+#library('plyr')
+```
+
+##Set the gene Universe
+```{r}
+#get all your gene ids and corresponding GO
+#I removed .NA from geneID2GO.csv by using the dunction find and replace from txtedit, otherwise the IDs don't match with the aboral enriched IDs
+geneID2GO <- readMappings(file = "/Users/Julia/Desktop/TopGO/aboral_oral/clytia/geneID2GO.csv")
+geneUniverse <- names(geneID2GO)
+class(geneUniverse)
+```
+
+#Aboral/oral enriched
+
+```{r}
+#Set the selected genes to do the enrichment analysis, aboral/oral enriched genes in here:
+aboral_chem <- read.table("/Users/Julia/Desktop/TopGO/aboral_oral/clytia/IDs_chem_results_UP_Ab_vs_Or_0.05_lcf1", sep='\t', header = FALSE, col.names = c("seq_ID"))
+
+aboral_chem <- aboral_chem$seq_ID
+as.character(aboral_chem)
+aboral_chem
+
+oral_chem <- read.table("/Users/Julia/Desktop/TopGO/aboral_oral/clytia/IDs_chem_results_Or_vs_Ab_0.05_lcf1", sep='\t', header = FALSE, col.names = c("seq_ID"))
+
+oral_chem <- oral_chem$seq_ID
+as.character(oral_chem)
+oral_chem
+
+
+
+```
+```{r}
+allGenes = setNames(as.factor(as.integer(geneUniverse %in% aboral_chem)),geneUniverse)
+class(allGenes)
+levels(allGenes)
+```
+
+
+```{r}
+topGO_obj_aboral <- new("topGOdata", description = "test", ontology="BP", annot = annFUN.gene2GO,gene2GO= geneID2GO,   allGenes = setNames(as.factor(as.integer(geneUniverse %in% aboral_chem)),geneUniverse))
+
+topGO_obj_2_aboral <- new("topGOdata", description = "test", ontology="MF", annot = annFUN.gene2GO,gene2GO= geneID2GO,
+                 allGenes = setNames(as.factor(as.integer(geneUniverse %in% aboral_chem)),geneUniverse))
+
+```
+
+```{r}
+topGO_obj_oral <- new("topGOdata", description = "test", ontology="BP", annot = annFUN.gene2GO,gene2GO= geneID2GO,   allGenes = setNames(as.factor(as.integer(geneUniverse %in% oral_chem)),geneUniverse))
+
+topGO_obj_2_oral <- new("topGOdata", description = "test", ontology="MF", annot = annFUN.gene2GO,gene2GO= geneID2GO,
+                 allGenes = setNames(as.factor(as.integer(geneUniverse %in% oral_chem)),geneUniverse))
+
+```
+
+
+```{r}
+fisher_obj_ab <- runTest(topGO_obj_aboral, algorithm = "classic", statistic = "fisher")
+
+fisher_obj_ab2 <- runTest(topGO_obj_2_aboral, algorithm = "classic", statistic = "fisher")
+```
+
+
+```{r}
+fisher_obj_or <- runTest(topGO_obj_oral, algorithm = "classic", statistic = "fisher")
+
+fisher_obj_or2 <- runTest(topGO_obj_2_oral, algorithm = "classic", statistic = "fisher")
+
+```
+
+```{r}
+res_ab <- GenTable(object=topGO_obj_aboral,fisher_pval=fisher_obj_ab,orderBy="fisher_pval",topNodes=length(score(fisher_obj_ab)))
+res_ab$fisher_pval <- as.numeric(res_ab$fisher_pval)
+names(res_ab)[6] <- paste('fisher',slot(topGO_obj_aboral,"description"),sep="_")
+
+res_ab2 <- GenTable(object=topGO_obj_2_aboral,fisher_pval=fisher_obj_ab2,orderBy="fisher_pval",topNodes=length(score(fisher_obj_ab2)))
+res_ab2$fisher_pval <- as.numeric(res_ab2$fisher_pval)
+names(res_ab2)[6] <- paste('fisher',slot(topGO_obj_2_aboral,"description"),sep="_")
+
+```
+
+```{r}
+res_or <- GenTable(object=topGO_obj_oral,fisher_pval=fisher_obj_or,orderBy="fisher_pval",topNodes=length(score(fisher_obj_or)))
+res_or$fisher_pval <- as.numeric(res_or$fisher_pval)
+names(res_or)[6] <- paste('fisher',slot(topGO_obj_oral,"description"),sep="_")
+
+#to get the complete label from each GO category add numChar=1000 to the res funfction
+res_or2 <- GenTable(object=topGO_obj_2_oral,fisher_pval=fisher_obj_or2,orderBy="fisher_pval",topNodes=length(score(fisher_obj_or2)))
+res_or2$fisher_pval <- as.numeric(res_or2$fisher_pval)
+names(res_or2)[6] <- paste('fisher',slot(topGO_obj_2_oral,"description"),sep="_")
+#to get the complete label from each GO category add numChar=1000 to the res funfction
+#ex:
+#res_or2 <- GenTable(object=topGO_obj_2_oral,fisher_pval=fisher_obj_or2,orderBy="fisher_pval",topNodes=length(score(fisher_obj_or2)),numChar=1000 )
+
+```
+
+```{r}
+BP_aboral <- res_ab %>% filter(fisher_test < 0.05) %>% arrange(fisher_test) %>%
+  ggplot(aes(x=reorder(Term,-fisher_test),y=Significant,fill=fisher_test)) +
+  scale_fill_gradient("p value",  low = "#E6E6FA", high = "#4B0082")+
+  geom_col() + coord_flip() + labs(title="GO enrichement",y="gene count",x="biological process") + theme_classic()
+BP_aboral
+
+ggsave("aboral_BP.png", width = 10, height = 7, dpi=700)
+
+```
+```{r}
+res_ab2 %>% filter(fisher_test < 0.05) %>% arrange(fisher_test) %>%
+  ggplot(aes(x=reorder(Term,-fisher_test),y=Significant,fill=fisher_test)) +
+  scale_fill_gradient("p value", low = "#E6E6FA", high = "#4B0082")+
+  geom_col() + coord_flip() + labs(title="GO enrichement",y="gene count",x="molecular function") + theme_classic()
+
+ggsave("aboral_MF.png", width = 10, height = 7, dpi=700)
+
+```
+
+
+
+```{r}
+BP_oral <- res_or %>% filter(fisher_test < 0.05) %>% arrange(fisher_test) %>%
+  ggplot(aes(x=reorder(Term,-fisher_test),y=Significant,fill=fisher_test)) +
+  scale_fill_gradient("p value",  low = "#E6E6FA", high = "#4B0082")+
+  geom_col() + coord_flip() + labs(title="GO enrichement",y="gene count",x="biological process") + theme_classic()
+
+BP_oral
+
+ggsave("oral_BP.png", width = 10, height = 7, dpi=700, limitsize = FALSE)
+```
+
+```{r}
+
+oral_MF <- res_or2 %>% filter(fisher_test < 0.05) %>% arrange(fisher_test) %>%
+  ggplot(aes(x=reorder(Term,-fisher_test),y=Significant,fill=fisher_test)) +
+  scale_fill_gradient("p value",  low = "#E6E6FA", high = "#4B0082")+
+  geom_col() + coord_flip() + labs(title="GO enrichement",y="gene count",x="molecular function") + theme_classic()
+oral_MF
+
+ggsave("oral_MF.png", width = 10, height = 7, dpi=700, limitsize = FALSE)
+```
+
+

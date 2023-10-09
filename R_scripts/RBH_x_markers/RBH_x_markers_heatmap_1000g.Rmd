@@ -1,0 +1,330 @@
+---
+title: "RBH_x_markers_heatmap_1000g.rmd"
+author: "Marc Meynadier"
+date: "2023-02-13"
+output: html_document
+---
+
+```{r, fig.width=12,fig.height=10}
+# RBH_x_markers analysis
+
+# Packages and dependence
+packageCheckClassic <- function(x){
+  # 
+  for( i in x ){
+    if( ! require( i , character.only = TRUE ) ){
+      install.packages( i , dependencies = TRUE )
+      require( i , character.only = TRUE )
+    }
+  }
+}
+
+# Working environment 
+scriptPath<-dirname(rstudioapi::getSourceEditorContext()$path)
+setwd(scriptPath)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+dataPath<-'/species/'
+wdPath<-paste(scriptPath,dataPath,sep='')
+setwd(wdPath)
+
+# Data importation adult
+# Different species 
+
+# Clytia - Nematostella 
+
+Clytia_larva_Nematostella_larva <- read.csv('crossSpecies/Clytia_Nematostella/RBH_x_markers/stat/Clytia_larva_Nematostella_larva_Fisher_test_1000g.csv')
+Clytia_larva_Nematostella_larva <- Clytia_larva_Nematostella_larva[-c(1)]
+
+#Clytia_larva_Nematostella_larva_bootstrap <- read.csv('crossSpecies/Clytia_Nematostella/RBH_x_markers/stat/Clytia_larva_Nematostella_larva_ASL_bootstrap_999_iterations.csv')
+#Clytia_larva_Nematostella_larva_bootstrap <- Clytia_larva_Nematostella_larva_bootstrap[-c(1)]
+
+Clytia_adult_Nematostella_adult <- read.csv('crossSpecies/Clytia_Nematostella/RBH_x_markers/stat/Clytia_adult_Nematostella_adult_Fisher_test_1000g.csv')
+Clytia_adult_Nematostella_adult <- Clytia_adult_Nematostella_adult[-c(1)]
+
+Clytia_larva_Nematostella_adult <- read.csv('crossSpecies/Clytia_Nematostella/RBH_x_markers/stat/Clytia_larva_Nematostella_adult_Fisher_test_1000g.csv')
+Clytia_larva_Nematostella_adult <- Clytia_larva_Nematostella_adult[-c(1)]
+
+Clytia_adult_Nematostella_larva <- read.csv('crossSpecies/Clytia_Nematostella/RBH_x_markers/stat/Clytia_adult_Nematostella_larva_Fisher_test_1000g.csv')
+Clytia_adult_Nematostella_larva <- Clytia_adult_Nematostella_larva[-c(1)]
+
+# Clytia - Xenia
+
+Clytia_adult_Xenia_adult <- read.csv('crossSpecies/Clytia_Xenia/RBH_x_markers/stat/Clytia_adult_Xenia_adult_Fisher_test_1000g.csv')
+Clytia_adult_Xenia_adult <- Clytia_adult_Xenia_adult[-c(1)]
+
+#Clytia_adult_Xenia_adult_bootstrap <- read.csv('crossSpecies/Clytia_Xenia/RBH_x_markers/stat/Clytia_adult_Xenia_adult_ASL_bootstrap_999_iterations.csv')
+#Clytia_adult_Xenia_adult_bootstrap <- Clytia_adult_Xenia_adult_bootstrap[-c(1)]
+
+Clytia_larva_Xenia_adult <- read.csv('crossSpecies/Clytia_Xenia/RBH_x_markers/stat/Clytia_larva_Xenia_adult_Fisher_test_1000g.csv')
+Clytia_larva_Xenia_adult <- Clytia_larva_Xenia_adult[-c(1)]
+
+#Clytia_larva_Xenia_adult_bootstrap <- read.csv('crossSpecies/Clytia_Xenia/RBH_x_markers/stat/Clytia_larva_Xenia_adult_ASL_bootstrap_999_iterations.csv')
+#Clytia_larva_Xenia_adult_bootstrap <- Clytia_larva_Xenia_adult_bootstrap[-c(1)]
+
+# Nematostella - Xenia
+
+Nematostella_adult_Xenia_adult <- read.csv('crossSpecies/Nematostella_Xenia/RBH_x_markers/stat/Nematostella_adult_Xenia_adult_Fisher_test_1000g.csv')
+Nematostella_adult_Xenia_adult <- Nematostella_adult_Xenia_adult[-c(1)]
+
+#Nematostella_adult_Xenia_adult_bootstrap <- read.csv('crossSpecies/Nematostella_Xenia/RBH_x_markers/stat/Nematostella_adult_Xenia_adult_ASL_bootstrap_999_iterations.csv')
+#Nematostella_adult_Xenia_adult_bootstrap <- Nematostella_adult_Xenia_adult_bootstrap[-c(1)]
+
+Nematostella_larva_Xenia_adult <- read.csv('crossSpecies/Nematostella_Xenia/RBH_x_markers/stat/Nematostella_larva_Xenia_adult_Fisher_test_1000g.csv')
+Nematostella_larva_Xenia_adult <- Nematostella_larva_Xenia_adult[-c(1)]
+
+#Nematostella_larva_Xenia_adult_bootstrap <- read.csv('crossSpecies/Nematostella_Xenia/RBH_x_markers/stat/Nematostella_larva_Xenia_adult_ASL_bootstrap_999_iterations.csv')
+#Nematostella_larva_Xenia_adult_bootstrap <- Nematostella_larva_Xenia_adult_bootstrap[-c(1)]
+
+
+library(ggplot2)
+library(pheatmap)
+library(grid)
+
+fisherBreaks=c(0,10,20,30,40,50,60)
+bootstrapBreaks=c(0, 0.001,0.05,1)
+fisherColorsBreak <- c("#dbe2e2","#b0afae","#98979b","#696868","#565554","#393a39","#0c0d0c")
+bootstrapColorsBreak <- c("#0c0d0c","#565554","#dbe2e2")
+
+# Clusters annotations
+#Nematostella_adult <- c("0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21")
+Nematostella_adult <- c("0 - Gastrodermis","1 - Ectodermis","2 - Pharyngeal ectodermis","3 - Pharyngeal ectodermis","4 - Epidermis","5 - Neurons","6 - Ectodermis","7 - Cnidocytes","8 - Smooth muscle","9 - Differentiating cnidocytes","10 - NPC","11 - Ectodermis","12 - Retractor muscle","13 - Mucous gland cells","14 - Mature cnidocytes","15 - Pharyngeal ectoderm","16 - Secretory cells","17 - Secretory cells","18 - Gastrodermis","19 - ?","20 - Secretory cells","21 - ? (Neurons-like cells)")
+
+Clytia_adult <- c("0 - Medium oocytes","1 - Exumbrella epidermis","2 - I-cells","3 - Mature cnidocytes","4 - Early cnidocytes","5 - Exumbrella epidermis B","6 - Gastrodermis","7 - Striated muscle","8 - Mixed profile","9 - Cnidocytes","10 - Gastrodermis","11 - Tentacle bulb epidermis","12 - Gastrodermis","13 - Terminal differentiating cnidocytes","14 - NPC","15 - Gonad/Manubrium epidermis","16 - Differentiating cnidocytes","17 - Neurons (pp11/pp17)","18 - Gastrodermis","19 - Gastrodermis","20 - Radial smooth muscle","21 - Tentacle bulb gastrodermis","22 - Digestive gland cells","23 - Neurons (pp14/pp25)","24 - Endodermal plate","25 - Digestive gland cells","26 - Neurons","27 - Differentiating cnidocyte","28 - Digestive gland cells","29 - Neurons (pp9)","30 - Small oocytes","31 - Digestive gland cells")
+
+#Nematostella_larva <- c("0 - Ectodermis","1 - Ectodermis","2 - Ectodermis","3 - Endomesodermis","4 - Pharyngeal ectodermis","5 - Early cnidocytes","6 - NPC","7 - Ectodermis","8 - Neurons","9 - Cnidocytes","10 - Mucous gland cells","11 - Differentiating cnidocytes","12 - Mature cnidocytes ","13 - Neurons","14 - Secretory cells","15 - Ectodermis","16 - Ectodermis","17 - Ectodermis","18 - Neurons","19 - Neurons","20 - Cnidocytes")
+Nematostella_larva <- c("0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18",'19','20')
+
+
+#Clytia_larva <- c("0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18")
+Clytia_larva <- c("0 - I-cells","1 - Epidermis","2 - Epidermis","3 - Epidermis","4 - Gastrodermis","5 - Epidermis","6 - I-cells","7 - Early cnidocytes","8 - Mucous gland cells","9 - Neurons","10 - Cnidocytes 2","11 - I-cells","12 - Mature cnidocytes","13 - Cnidocytes 1","14 - Gastrodermis","15 - Neurosecretory","16 - Neurons","17 - PEC-B","18 - PEC-A")
+
+#Xenia_adult <- c("0 - Gastrodermis","1 - Ectodermis","2 - Ectodermis","3 - Epidermis","4 - Ectodermis","5 - Ectodermis","6 - NPC","7 - Muscle","8 - Ectodermis","9 - Ectodermis","10 - Gastrodermis","11 - Neurons","12 - Cnidocytes","13 - Epidermis","14 - Mature cnidocytes","15 - Secretory cells (neurosecretory ?)","16 - Ectodermis (secretory ?)","17 - Neurosecretory cells","18 - Early cnidocytes","19 - Mucous gland","20 - Endosymbiotic cells","21 - ?","22 - Endosymbiotic cells","23 - Neurons")
+Xenia_adult <- c("0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23")
+
+# Label columns and rows
+row.names(Clytia_larva_Nematostella_larva) <- Clytia_larva
+colnames(Clytia_larva_Nematostella_larva) <- Nematostella_larva
+
+#row.names(Clytia_larva_Nematostella_larva_bootstrap) <- Clytia_larva
+#colnames(Clytia_larva_Nematostella_larva_bootstrap) <- Nematostella_larva
+
+row.names(Clytia_adult_Nematostella_adult) <- Clytia_adult
+colnames(Clytia_adult_Nematostella_adult) <- Nematostella_adult
+
+row.names(Clytia_larva_Nematostella_adult) <- Clytia_larva
+colnames(Clytia_larva_Nematostella_adult) <- Nematostella_adult
+
+row.names(Clytia_adult_Nematostella_larva) <- Clytia_adult
+colnames(Clytia_adult_Nematostella_larva) <- Nematostella_larva
+
+row.names(Clytia_adult_Xenia_adult) <- Clytia_adult
+colnames(Clytia_adult_Xenia_adult) <- Xenia_adult
+
+#row.names(Clytia_adult_Xenia_adult_bootstrap) <- Clytia_adult
+#colnames(Clytia_adult_Xenia_adult_bootstrap) <- Xenia_adult
+
+row.names(Clytia_larva_Xenia_adult) <- Clytia_larva
+colnames(Clytia_larva_Xenia_adult) <- Xenia_adult
+
+#row.names(Clytia_larva_Xenia_adult_bootstrap) <- Clytia_larva
+#colnames(Clytia_larva_Xenia_adult_bootstrap) <- Xenia_adult
+
+row.names(Nematostella_adult_Xenia_adult) <- Nematostella_adult
+colnames(Nematostella_adult_Xenia_adult) <- Xenia_adult
+
+#row.names(Nematostella_adult_Xenia_adult_bootstrap) <- Nematostella_adult
+#colnames(Nematostella_adult_Xenia_adult_bootstrap) <- Xenia_adult
+
+row.names(Nematostella_larva_Xenia_adult) <- Nematostella_larva
+colnames(Nematostella_larva_Xenia_adult) <- Xenia_adult
+
+#row.names(Nematostella_larva_Xenia_adult_bootstrap) <- Nematostella_larva
+#colnames(Nematostella_larva_Xenia_adult_bootstrap) <- Xenia_adult
+
+
+# pheatmap
+transform_Clytia_larva_Nematostella_larva_fisher_matrix<--log10(as.matrix(Clytia_larva_Nematostella_larva))
+transform_Clytia_larva_Nematostella_larva_fisher_matrix<-matrix(unlist(transform_Clytia_larva_Nematostella_larva_fisher_matrix),ncol=21)
+row.names(transform_Clytia_larva_Nematostella_larva_fisher_matrix) <- Clytia_larva
+colnames(transform_Clytia_larva_Nematostella_larva_fisher_matrix) <- Nematostella_larva
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_larva_Nematostella_larva_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Nematostella larva", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_larva_Nematostella_larva
+
+
+#setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+#pheatmap(Clytia_larva_Nematostella_larva_bootstrap,main="Bootstrap test",breaks=bootstrapBreaks,color=bootstrapColorsBreak)
+#setHook("grid.newpage", NULL, "replace")
+#grid.text("Nematostella larva", y=-0.07, gp=gpar(fontsize=14))
+#grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+
+transform_Clytia_adult_Nematostella_adult_fisher_matrix<--log10(as.matrix(Clytia_adult_Nematostella_adult))
+transform_Clytia_adult_Nematostella_adult_fisher_matrix<-matrix(unlist(transform_Clytia_adult_Nematostella_adult_fisher_matrix),ncol=22)
+row.names(transform_Clytia_adult_Nematostella_adult_fisher_matrix) <- Clytia_adult
+colnames(transform_Clytia_adult_Nematostella_adult_fisher_matrix) <- Nematostella_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_adult_Nematostella_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Nematostella adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_adult_Nematostella_adult
+
+
+transform_Clytia_larva_Nematostella_adult_fisher_matrix<--log10(as.matrix(Clytia_larva_Nematostella_adult))
+transform_Clytia_larva_Nematostella_adult_fisher_matrix<-matrix(unlist(transform_Clytia_larva_Nematostella_adult_fisher_matrix),ncol=22)
+row.names(transform_Clytia_larva_Nematostella_adult_fisher_matrix) <- Clytia_larva
+colnames(transform_Clytia_larva_Nematostella_adult_fisher_matrix) <- Nematostella_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_larva_Nematostella_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Nematostella adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_larva_Nematostella_adult
+
+
+transform_Clytia_adult_Nematostella_larva_fisher_matrix<--log10(as.matrix(Clytia_adult_Nematostella_larva))
+transform_Clytia_adult_Nematostella_larva_fisher_matrix<-matrix(unlist(transform_Clytia_adult_Nematostella_larva_fisher_matrix),ncol=21)
+row.names(transform_Clytia_adult_Nematostella_larva_fisher_matrix) <- Clytia_adult
+colnames(transform_Clytia_adult_Nematostella_larva_fisher_matrix) <- Nematostella_larva
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_adult_Nematostella_larva_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Nematostella larva", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_adult_Nematostella_larva
+
+
+transform_Clytia_adult_Xenia_adult_fisher_matrix<--log10(as.matrix(Clytia_adult_Xenia_adult))
+transform_Clytia_adult_Xenia_adult_fisher_matrix<-matrix(unlist(transform_Clytia_adult_Xenia_adult_fisher_matrix),ncol=24)
+row.names(transform_Clytia_adult_Xenia_adult_fisher_matrix) <- Clytia_adult
+colnames(transform_Clytia_adult_Xenia_adult_fisher_matrix) <- Xenia_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_adult_Xenia_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_adult_Xenia_adult
+
+
+#setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+#pheatmap(Clytia_adult_Xenia_adult_bootstrap,main="Bootstrap test",breaks=bootstrapBreaks,color=bootstrapColorsBreak)
+#setHook("grid.newpage", NULL, "replace")
+#grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+#grid.text("Clytia adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+
+transform_Clytia_larva_Xenia_adult_fisher_matrix<--log10(as.matrix(Clytia_larva_Xenia_adult))
+transform_Clytia_larva_Xenia_adult_fisher_matrix<-matrix(unlist(transform_Clytia_larva_Xenia_adult_fisher_matrix),ncol=24)
+row.names(transform_Clytia_larva_Xenia_adult_fisher_matrix) <- Clytia_larva
+colnames(transform_Clytia_larva_Xenia_adult_fisher_matrix) <- Xenia_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_larva_Xenia_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_larva_Xenia_adult
+
+
+#setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+#pheatmap(Clytia_larva_Xenia_adult_bootstrap,main="Bootstrap test",breaks=bootstrapBreaks,color=bootstrapColorsBreak)
+#setHook("grid.newpage", NULL, "replace")
+#grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+#grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+
+transform_Nematostella_adult_Xenia_adult_fisher_matrix<--log10(as.matrix(Nematostella_adult_Xenia_adult))
+transform_Nematostella_adult_Xenia_adult_fisher_matrix<-matrix(unlist(transform_Nematostella_adult_Xenia_adult_fisher_matrix),ncol=24)
+row.names(transform_Nematostella_adult_Xenia_adult_fisher_matrix) <- Nematostella_adult
+colnames(transform_Nematostella_adult_Xenia_adult_fisher_matrix) <- Xenia_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Nematostella_adult_Xenia_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Nematostella adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Nematostella_adult_Xenia_adult
+
+
+#setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+#pheatmap(Nematostella_adult_Xenia_adult_bootstrap,main="Bootstrap test",breaks=bootstrapBreaks,color=bootstrapColorsBreak)
+#setHook("grid.newpage", NULL, "replace")
+#grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+#grid.text("Nematostella adult", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+
+transform_Nematostella_larva_Xenia_adult_fisher_matrix<--log10(as.matrix(Nematostella_larva_Xenia_adult))
+transform_Nematostella_larva_Xenia_adult_fisher_matrix<-matrix(unlist(transform_Nematostella_larva_Xenia_adult_fisher_matrix),ncol=24)
+row.names(transform_Nematostella_larva_Xenia_adult_fisher_matrix) <- Nematostella_larva
+colnames(transform_Nematostella_larva_Xenia_adult_fisher_matrix) <- Xenia_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Nematostella_larva_Xenia_adult_fisher_matrix,main="Adult fisher exact test")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Xenia adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Nematostella larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Nematostella_larva_Xenia_adult
+
+# Same species
+Clytia_larva_Clytia_adult <- read.csv('Clytia/analysis/RBH_x_markers/stat/Clytia_larva_Clytia_adult_Fisher_test_1000g.csv')
+Clytia_larva_Clytia_adult <- Clytia_larva_Clytia_adult[-c(1)]
+
+Nematostella_larva_Nematostella_adult <- read.csv('Nematostella/analysis/RBH_x_markers/stat/Nematostella_larva_Nematostella_adult_Fisher_test_1000g.csv')
+Nematostella_larva_Nematostella_adult <- Nematostella_larva_Nematostella_adult[-c(1)]
+
+# Label columns and rows
+row.names(Clytia_larva_Clytia_adult) <- Clytia_larva
+colnames(Clytia_larva_Clytia_adult) <- Clytia_adult
+
+row.names(Nematostella_larva_Nematostella_adult) <- Nematostella_larva
+colnames(Nematostella_larva_Nematostella_adult) <- Nematostella_adult
+
+# pheatmat
+transform_Clytia_larva_Clytia_adult_fisher_matrix<--log10(as.matrix(Clytia_larva_Clytia_adult))
+transform_Clytia_larva_Clytia_adult_fisher_matrix<-matrix(unlist(transform_Clytia_larva_Clytia_adult_fisher_matrix),ncol=32)
+transform_Clytia_larva_Clytia_adult_fisher_matrix[sapply(transform_Clytia_larva_Clytia_adult_fisher_matrix, is.infinite)] <- NA
+row.names(transform_Clytia_larva_Clytia_adult_fisher_matrix) <- Clytia_larva
+colnames(transform_Clytia_larva_Clytia_adult_fisher_matrix) <- Clytia_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Clytia_larva_Clytia_adult_fisher_matrix,main="Adult fisher exact test",na_col = "black")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Clytia adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Clytia larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Clytia_larva_Clytia_adult
+
+
+transform_Nematostella_larva_Nematostella_adult_fisher_matrix<--log10(as.matrix(Nematostella_larva_Nematostella_adult))
+transform_Nematostella_larva_Nematostella_adult_fisher_matrix<-matrix(unlist(transform_Nematostella_larva_Nematostella_adult_fisher_matrix),ncol=22)
+transform_Nematostella_larva_Nematostella_adult_fisher_matrix[sapply(transform_Nematostella_larva_Nematostella_adult_fisher_matrix, is.infinite)] <- NA
+row.names(transform_Nematostella_larva_Nematostella_adult_fisher_matrix) <- Nematostella_larva
+colnames(transform_Nematostella_larva_Nematostella_adult_fisher_matrix) <- Nematostella_adult
+
+setHook("grid.newpage", function() pushViewport(viewport(x=1,y=1,width=0.9, height=0.9, name="vp", just=c("right","top"))), action="prepend")
+pheatmap(transform_Nematostella_larva_Nematostella_adult_fisher_matrix,main="Adult fisher exact test",na_col = "black")
+setHook("grid.newpage", NULL, "replace")
+grid.text("Nematostella adult", y=-0.07, gp=gpar(fontsize=14))
+grid.text("Nematostella larva", x=-0.07, rot=90, gp=gpar(fontsize=14))
+
+Nematostella_larva_Nematostella_adult
+```

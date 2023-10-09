@@ -1,0 +1,178 @@
+---
+title: "Seurat_Nematostella_Steger2022_GSE154105_GSM4663943_SRR12185432"
+author: "Marc Meynadier"
+date: "2022-10-27"
+output: html_document
+---
+
+
+```{r}
+# sc-RNA - Seurat analysis
+
+# Packages and dependence
+packageCheckClassic <- function(x){
+  for( i in x ){
+    #  require returns TRUE invisibly if it was able to load package
+    if( ! require( i , character.only = TRUE ) ){
+      #  If package was not able to be loaded then re-install
+      install.packages( i , dependencies = TRUE )
+      #  Load package after installing
+      require( i , character.only = TRUE )
+    }
+  }
+}
+
+packageCheckClassic(c('Seurat','dplyr','patchwork','R.utils'))
+
+# Setup environment variables
+species <- 'Nematostella'
+paper <- 'steger2022'
+GEO <- 'GSE154105'
+GSM <- 'GSM4663943'
+SRA <- 'SRR12185432'
+
+# Checking architecture and working environment 
+scriptPath<-dirname(rstudioapi::getSourceEditorContext()$path)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+scriptPath <- sub("/[^/]+$", "", scriptPath)
+dataPath<-paste(scriptPath,'species',species,'analysis','STARmapping',paper,GEO,GSM,SRA,'Solo.out','Gene','filtered', sep = '/')
+outputPath<-paste(scriptPath,'species',species,'analysis','Seurat',paper,GEO,GSM,SRA, sep='/')
+
+while (file.exists(outputPath) == FALSE) {
+  if (file.exists(paste(scriptPath,'species',sep='/'))){
+    wdDirectory <- paste(scriptPath,'species', sep ='/')
+    setwd(wdDirectory)
+    if (file.exists(paste(wdDirectory,species,sep='/'))){
+      wdDirectory <- paste(wdDirectory,species, sep ='/')
+      setwd(wdDirectory)
+      if (file.exists(paste(wdDirectory,'analysis',sep='/'))){
+        wdDirectory <- paste(wdDirectory,'analysis', sep ='/')
+        setwd(wdDirectory)
+        if (file.exists(paste(wdDirectory,'Seurat',sep='/'))){
+          wdDirectory <- paste(wdDirectory,'Seurat', sep ='/')
+          setwd(wdDirectory)
+          if (file.exists(paste(wdDirectory,paper,sep='/'))){
+            wdDirectory <- paste(wdDirectory,paper, sep ='/')
+            setwd(wdDirectory)
+            if (file.exists(paste(wdDirectory,GEO,sep='/'))){
+              wdDirectory <- paste(wdDirectory,GEO, sep ='/')
+              setwd(wdDirectory)
+              if (file.exists(paste(wdDirectory,GSM,sep='/'))){
+                wdDirectory <- paste(wdDirectory,GSM, sep ='/')
+                setwd(wdDirectory)
+                if (file.exists(paste(wdDirectory,SRA,sep='/'))){
+                  print('Output path is setup')
+                } else {
+                  dir.create(file.path(wdDirectory, SRA))
+                }
+              } else {
+                dir.create(file.path(wdDirectory, GSM))
+              }
+            } else {
+              dir.create(file.path(wdDirectory, GEO))
+            }
+          } else {
+            dir.create(file.path(wdDirectory, paper))
+          }
+        } else {
+          dir.create(file.path(wdDirectory, 'Seurat'))
+        }
+      } else {
+        dir.create(file.path(wdDirectory, 'analysis'))
+      }
+    } else {
+      dir.create(file.path(wdDirectory, species))
+    }
+  } else {
+    dir.create(file.path(scriptPath, 'species'))
+  }
+}
+
+setwd(dataPath)
+
+# Data importation 
+files <- list.files(path = ".")
+for (i in files) {
+  gzip(i,remove=FALSE)
+}
+projectName <- paste(species,paper,GEO,GSM,SRA,'seurat',sep='_')
+project.data <- Read10X(data.dir = dataPath)
+project <- CreateSeuratObject(counts=project.data,project=species,min.cells=3,min.features=200)
+filesGz <- list.files(path = ".",pattern = ".gz")
+for (i in filesGz) {
+  file.remove(i)
+}
+
+# Pre-processing
+project[["percent.mt"]] <- PercentageFeatureSet(project, pattern = "^MT-") # Mitochondrial gene detection
+VlnPlot(project, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3) # Visualize QC metrics
+plot1 <- FeatureScatter(project, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(project, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+project <- subset(project, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+
+# Normalization
+project <- NormalizeData(project, normalization.method = "LogNormalize", scale.factor = 10000)
+
+# Feature selection
+project <- FindVariableFeatures(project, selection.method = "vst", nfeatures = 2000)
+top10 <- head(VariableFeatures(project), 10) # Identify the 10 most highly variable genes
+plot1 <- VariableFeaturePlot(project)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2 # plot variable features with and without labels
+
+# Data scaling 
+all.genes <- rownames(project)
+project <- ScaleData(project, features = all.genes)
+
+# Linear dimension reduction
+project <- RunPCA(project, features = VariableFeatures(object = project))
+print(project[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(project, dims = 1:2, reduction = "pca")
+DimPlot(project, reduction = "pca")
+DimHeatmap(project, dims = 1:15, cells = 500, balanced = TRUE)
+
+# Determine dimensionality 
+project <- JackStraw(project, num.replicate = 100)
+project <- ScoreJackStraw(project, dims = 1:20)
+JackStrawPlot(project, dims = 1:20)
+ElbowPlot(project)
+
+# Cell clusterization
+project <- FindNeighbors(project, dims = 1:10)
+project <- FindClusters(project, resolution = 0.5)
+head(Idents(project), 5) # cluster IDs of the first 5 cells
+
+# Non-linear dimensional reduction (UMAP/tSNE)
+project <- RunUMAP(project, dims = 1:3)
+DimPlot(project, reduction = 'umap',label=T)
+UMAPsave=paste(outputPath,paste(projectName,'UMAP.rds',sep='_'),sep='/')
+saveRDS(project, file = UMAPsave)
+
+# Cluster biomarkers finding
+cluster2.markers <- FindMarkers(project, ident.1 = 2, min.pct = 0.25) # find all markers of cluster 2
+head(cluster2.markers, n = 5) 
+cluster5.markers <- FindMarkers(project, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25) # find all markers distinguishing cluster 5 from clusters 0 and 3
+head(cluster5.markers, n = 5)
+project.markers <- FindAllMarkers(project, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25) # find markers for every cluster compared to all remaining cells, report only the positive ones
+project.markers %>%
+  group_by(cluster) %>%
+  slice_max(n = 2, order_by = avg_log2FC)
+cluster0.markers <- FindMarkers(project, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+head(cluster5.markers)
+VlnPlot(project, features = c("NV2g013117000.1", "NV2g022411000.1"))
+VlnPlot(project, features = c("NV2g013117000.1", "NV2g022411000.1"), slot = "counts", log = TRUE) # Raw counts
+FeaturePlot(project, features = c("NV2g013117000.1", "NV2g022411000.1","NV2g003373000.1","NV2g012945000.1",
+                               "NV2g006537000.1","NV2g008519000.1")) 
+project.markers %>%
+  group_by(cluster) %>%
+  top_n(n = 10, wt = avg_log2FC) -> top10
+DoHeatmap(project, features = top10$gene) + NoLegend()
+
+# Assigning cell type identity to clusters
+#new.cluster.ids <- c("")
+#names(new.cluster.ids) <- levels(project)
+#project <- RenameIdents(project, new.cluster.ids)
+#DimPlot(project, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+```
