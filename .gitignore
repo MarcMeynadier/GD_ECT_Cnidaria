@@ -1,0 +1,17 @@
+# Ignore files
+.ipynb_checkpoints
+.DS_Store
+pycache
+__pycache__
+*.db
+*.png
+*.txt
+*.csv
+*.tree
+*.fasta
+*.pdf
+*.odg
+cache
+*.pytest_cache
+py_scripts/ScanpyProcessing/v3_medusaGENERATION_ALLsamples_MITO_HARMONY.ipynb
+
