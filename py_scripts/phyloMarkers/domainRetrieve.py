@@ -12,6 +12,8 @@ from Bio.Blast.Applications import NcbiblastpCommandline
 from commonFunctions import *
 from smallPicture import *
 from bigPicture import *
+from taxoModule import *
+from scanpyLink import *
 
 
 
@@ -29,7 +31,6 @@ def main(args):
   domainQuery = getQueryDomains(args.query,args.output)
   targetGenes = retrieveGenesPfam(args.output,domainQuery)
   geneList,protList = retrieveFastaSeq("input/proteins/metazoanProteins.fasta",targetGenes)
-
   if args.query != None:
     args.domain = args.query.split(".")[0]
   dtOut = "metazoanDtOut"
@@ -54,10 +55,21 @@ def main(args):
   if os.path.exists("output/"+args.output+"/MSA/"+args.domain+"Tree.tree") == False: 
     treeBuild(args.output,args.domain)
   if os.path.exists("output/"+args.output+"/MSA/"+args.domain+"Tree.pdf") == False:
-    treeGenerator(args.output,args.domain) 
-  #retrieveParalogs(args.output,args.query)
+    treeGenerator(args.output,args.domain)  
 
+  if os.path.exists("output/metazoanTaxo.txt") == False:
+    dictMetazoan = parseMetazoanList()
+    createTaxoFile(dictMetazoan)
   
+  dictTaxo = getDictTaxoFile()
+  familiesList = retrieveFamilies(args.output,args.query,dictTaxo,"Cnidaria")
+  paralogsFamilies = getParalogs(familiesList) 
+  
+  #eligibleFiles = scanpyEligibleSpecies()
+  scExpr(args.output,dictTaxo,paralogsFamilies,args.query.split(".")[0])
+
+
+
   """
   proteomPath = "input/proteins/longest_isoform_"+sp+"Proteins.fasta"
   transcriptList = getTranscriptCellType(sp,lf,clusterList)
@@ -117,10 +129,21 @@ def main(args):
                      "input/pfam/"+args.hmm_lib,"output/"+args.output+"/transcriptsFasta/pcoOrthologsTranscripts.fasta"])
   """
 
+def getDictTaxoFile():
+  dictTaxo = {}
+  with open("output/metazoanTaxo.txt","r") as f:
+    l = f.readline() 
+    while l != "":
+      l = l.replace("\n","")
+      abbr = l.split(":")[0] 
+      lineage = l.split(":")[1]
+      dictTaxo[abbr] = lineage.split(",")
+      l = f.readline()
+  f.close()
+  return dictTaxo
 
 
-"""
-def retrieveParalogs(output,query):
+def retrieveFamilies(output,query,dictTaxo,taxaLimit):
   query = query.split(".")[0]
   with open("output/"+output+"/MSA/"+query+"Tree.tree") as f:
     tree = f.readline()
@@ -133,17 +156,40 @@ def retrieveParalogs(output,query):
       sp = sp.replace("(","")
     if sp not in spList:
       spList.append(sp)
-  paraNested = []
+  familiesList = []
+  family = []
+  trapFlag = False
   for i in nodesList:
-    paraList = []
-    usedSp = []
-    gene = i.split(":")[0]
-    sp = gene.split("|")[0]
-    if "(" in gene:
-      gene = gene.replace("(","")
-    paraList.append()
-"""
+    gene = i.replace('(',"")
+    gene = gene.split(":")[0]
+    lineage = dictTaxo[gene.split("|")[0]]
+    if taxaLimit in lineage:
+      trapFlag = True
+    else:
+      trapFlag = False
+      if len(family) != 0:
+        familiesList.append(family)
+        family = []
+    if trapFlag == True:
+      family.append(gene)
+  return familiesList
+      
+    
+def getParalogs(familiesList):
+  paralogsFamilies = []
+  for i in familiesList:
+    familyGene = [j.split("|")[0] for j in i]
+    idx = np.where(pd.DataFrame(familyGene).duplicated(keep=False))[0].tolist()
+    paralogs = [i[j] for j in idx]
+    if len(paralogs) != 0:
+      paralogsFamilies.append(paralogs)
+  return paralogsFamilies
+      
 
+
+
+      
+      
 
 def verifyDomains(listDomain,domainQuery):
   verifList = []
@@ -239,8 +285,7 @@ def retrieveGenesPfam(output,domainQuery):
   targetGenes = []
   for k,v in dicGeneDomain.items():
     if v == domainQuery:
-      targetGenes.append(k)
-  print(targetGenes)
+      targetGenes.append(k) 
   return targetGenes
   
   
@@ -252,7 +297,7 @@ def concatProteom(spList,input):
             for line in infile:
                 outfile.write(line)
   outfile.close()
-
+ 
 def blastQuery(query,output):
   blastp = '/Users/mmeynadier/Documents/PhD/scripts/tools/ncbi-blast/bin/blastp' 
   queryPath = 'input/queries/'+query

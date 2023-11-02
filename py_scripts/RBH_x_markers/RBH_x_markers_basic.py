@@ -20,8 +20,12 @@ def getRBHdata(spList):
     """ 
     sp1 = spList[0] ; sp2 = spList[1]
     forward = pd.read_csv('input/RBH/'+sp1+'_'+sp2+'.txt',sep="\t")
+    forward = forward.drop(forward[forward.evalue > 10e-14].index)
+    forward = forward.drop(forward[forward.evalue == 0].index)
     backward = pd.read_csv('input/RBH/'+sp2+'_'+sp1+'.txt',sep="\t") 
-    backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']] 
+    backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']]
+    backward = backward.drop(backward[backward.evalue > 10e-14].index)
+    backward = backward.drop(backward[backward.evalue == 0].index)  
     RBHdf = pd.merge(forward,backward,on=['qseqid','sseqid'],how='inner')
     return RBHdf
 
@@ -400,6 +404,8 @@ def countContingencyTable(RBHgenesTupleList,markersDictSpList,species,spList):
     return matrixList            
 
 
-                            
+
+#def many2many():
+
                    
         

@@ -1,7 +1,4 @@
-import argparse
-import subprocess,os
-import numpy as np
-import regex as re
+import os
 import pandas as pd
 import os.path
 from Bio import SeqIO

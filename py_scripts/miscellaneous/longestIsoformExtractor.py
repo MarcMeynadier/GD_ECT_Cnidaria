@@ -325,12 +325,64 @@ def longestIsoformHydra(proteomPath,proteom):
     file.close() 
 
 
+def longestIsoformAiptasia(proteomPath,proteom):
+    with open(proteom,'r') as f:
+        line = f.readline()
+        prot=""
+        geneList = []
+        transcriptList = []
+        protList = []
+        while line != "":
+            if line[0] == ">":
+                line = line.replace("\n","")
+                transcript = line.replace('>','')
+                transcript = transcript.split(" ")[0]
+                transcript = ">"+transcript
+                transcriptList.append(transcript)
+                gene = transcript.split(".")[0]
+                gene = ">"+gene
+                geneList.append(gene)           
+                line = f.readline()
+                while line != "" and line[0] != ">":
+                    prot += line
+                    line = f.readline()
+                protList.append(prot)
+                prot = ""
+    f.close()
+    gene_transcript = {}
+    gene_prot = {}
+    for i in range(len(geneList)):
+        gene_transcript[geneList[i]] = transcriptList[i]
+        gene_prot[geneList[i]] = protList[i]
+    for k1,v1 in gene_prot.items():
+        maxLength = 0
+        transcriptLength = len(v1)
+        for k2,v2 in gene_transcript.items(): 
+            if k1 == k2:
+                if transcriptLength >= maxLength:
+                    maxLength = transcriptLength
+                else:
+                    gene_prot.pop(k1,v1) 
+    fileName = proteom.split('/')[-1] 
+    new_dict = {gene_transcript.get(key, key): value for key, value in gene_prot.items()}
+    with open(proteomPath+'longest_isoform_'+fileName, 'w') as file:
+        for k,v in new_dict.items():
+            file.write(k + '\n')
+            file.write(v)
+    file.close() 
+
+
+
+
+
+
+
+
+
 def main():
     species = sys.argv[1]
     proteomPath = "../../../../species/"+species+"/raw/"
     proteom = getProteom(proteomPath)
-    longestIsoformHydractinia(proteomPath,proteom)
-    #longestIsoformsAurelia(proteomPath,proteom)
-    #invertTranscriptGene(proteomPath,proteom)
+    longestIsoformAiptasia(proteomPath,proteom)
 
 main()
