@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import re
+import sys
+import subprocess
 from d3blocks import D3Blocks
 from acrylic import Color, RANDOM
 
@@ -13,7 +15,7 @@ import RBH_x_markers_parameters as param
 import RBH_x_markers_basic as basic
 
 
-def getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList):
+def getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,geneSource,orthoMode,contMethod):
     """
     Description
     -----------
@@ -33,21 +35,40 @@ def getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageL
     Returns
     ----------
     None
-    """ 
+    """
+    emptyFlag = blankOrthologsPairs(RBHgenesTupleList,markersDictSpList,orthoMode)
     sp1MarkersDict = markersDictSpList[0]
     sp2MarkersDict = markersDictSpList[1]
     clusterOrthologsDf = []
-    if RBHgenesTupleList != "Decorator":
-        for k1,v1 in sp1MarkersDict.items(): 
-            clusterOrthologsTuple = []
-            for k2,v2 in sp2MarkersDict.items():
-                orthologsPairsList = []
-                for i in RBHgenesTupleList: 
-                    if (i[1] in v1 and i[0] in v2):
-                        orthologsTuple = (i[1],i[0])
-                        orthologsPairsList.append(orthologsTuple)
-                clusterOrthologsTuple.append(orthologsPairsList)
-            clusterOrthologsDf.append(clusterOrthologsTuple) 
+    if RBHgenesTupleList != "sameSpecies":
+        if orthoMode == "one2one": 
+            for k1,v1 in sp1MarkersDict.items(): 
+                clusterOrthologsTuple = []
+                for k2,v2 in sp2MarkersDict.items():
+                    orthologsPairsList = []
+                    for i in RBHgenesTupleList: 
+                        if (i[1] in v1 and i[0] in v2):
+                            orthologsTuple = (i[1],i[0])
+                            orthologsPairsList.append(orthologsTuple)
+                    clusterOrthologsTuple.append(orthologsPairsList)
+                clusterOrthologsDf.append(clusterOrthologsTuple) 
+        elif orthoMode == "many2many":
+            for k1,v1 in sp1MarkersDict.items(): 
+                clusterOrthologsTuple = []
+                for k2,v2 in sp2MarkersDict.items():
+                    orthologsPairsList = []
+                    for i in RBHgenesTupleList: 
+                        if emptyFlag == False:
+                            intersectSp1 = [item for item in i[1] if item in v1]
+                            intersectSp2 = [item for item in i[0] if item in v2]
+                        else:
+                            intersectSp1 = [item for item in i[1] if item in v2]
+                            intersectSp2 = [item for item in i[0] if item in v1]
+                        if len(intersectSp1) != 0 and len(intersectSp2) != 0:
+                            orthologsTuple = (intersectSp1,intersectSp2)
+                            orthologsPairsList.append(orthologsTuple)
+                    clusterOrthologsTuple.append(orthologsPairsList)
+                clusterOrthologsDf.append(clusterOrthologsTuple)
     else:
         clusterOrthologsDf = []
         for k1,v1 in sp1MarkersDict.items(): 
@@ -56,11 +77,61 @@ def getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageL
                 orthologsSharedList = list(set(v1) & set(v2))
                 clusterOrthologsShared.append(orthologsSharedList)
             clusterOrthologsDf.append(clusterOrthologsShared)
-    matrixOrthologs = pd.DataFrame(clusterOrthologsDf)            
-    matrixOrthologs.to_csv('results/id/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv")
+    matrixOrthologs = pd.DataFrame(clusterOrthologsDf)
+    if RBHgenesTupleList != "sameSpecies":            
+        matrixOrthologs.to_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv")
+    else:
+        matrixOrthologs.to_csv('results/id/sameSpecies/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv")
     print("Orthologs shared lists processed for "+speciesList[0]+' '+lifestageList[0]+' & '+speciesList[1]+' '+lifestageList[1]) 
-    return 
+    return
 
+
+def blankOrthologsPairs(RBHgenesTupleList,markersDictSpList,orthoMode):
+    sp1MarkersDict = markersDictSpList[0]
+    sp2MarkersDict = markersDictSpList[1]
+    clusterOrthologsDf = []
+    if RBHgenesTupleList != "sameSpecies":
+        if orthoMode == "one2one": 
+            for k1,v1 in sp1MarkersDict.items(): 
+                clusterOrthologsTuple = []
+                for k2,v2 in sp2MarkersDict.items():
+                    orthologsPairsList = []
+                    for i in RBHgenesTupleList: 
+                        if (i[1] in v1 and i[0] in v2):
+                            orthologsTuple = (i[1],i[0])
+                            orthologsPairsList.append(orthologsTuple)
+                    clusterOrthologsTuple.append(orthologsPairsList)
+                clusterOrthologsDf.append(clusterOrthologsTuple) 
+        elif orthoMode == "many2many":
+            for k1,v1 in sp1MarkersDict.items(): 
+                clusterOrthologsTuple = []
+                for k2,v2 in sp2MarkersDict.items():
+                    orthologsPairsList = []
+                    for i in RBHgenesTupleList: 
+                        intersectSp1 = [item for item in i[1] if item in v1]
+                        intersectSp2 = [item for item in i[0] if item in v2]
+                        if len(intersectSp1) != 0 and len(intersectSp2) != 0:
+                            orthologsTuple = (intersectSp1,intersectSp2)
+                            orthologsPairsList.append(orthologsTuple)
+                    clusterOrthologsTuple.append(orthologsPairsList)
+                clusterOrthologsDf.append(clusterOrthologsTuple)
+                emptyFlag = None
+                for i in clusterOrthologsDf:
+                    empty = all(not sous_liste for sous_liste in i)
+                    if empty:
+                        emptyFlag = True
+                    else:
+                        emptyFlag = False
+                return emptyFlag
+    else:
+        clusterOrthologsDf = []
+        for k1,v1 in sp1MarkersDict.items(): 
+            clusterOrthologsShared = []
+            for k2,v2 in sp2MarkersDict.items():
+                orthologsSharedList = list(set(v1) & set(v2))
+                clusterOrthologsShared.append(orthologsSharedList)
+            clusterOrthologsDf.append(clusterOrthologsShared)
+            
 
 def parseAnnotFile(annotationFile):
     """
@@ -209,6 +280,7 @@ def chooseClusters(subjectAnnot,speciesList,lifestageList):
 
 
 def automaticIdentityStartingPoint(SPS):
+    
     """
     Description
     -----------
@@ -426,7 +498,7 @@ def extractSharedOrthologs(matrixOrthologs,subjectAnnot,speciesList,lifestageLis
     try:
         extractSharedOrthologs = matrixOrthologs.iloc[extractClusterList1,extractClusterList2]
     except IndexError:
-        extractSharedOrthologs = matrixOrthologs.iloc[extractClusterList2,extractClusterList1] 
+        extractSharedOrthologs = matrixOrthologs.iloc[extractClusterList2,extractClusterList1]
     if speciesList[0] != speciesList[1]:
         extractSharedOrthologsStr = ""
         for i in extractSharedOrthologs.iterrows():
@@ -450,7 +522,6 @@ def extractSharedOrthologs(matrixOrthologs,subjectAnnot,speciesList,lifestageLis
                 j = j.split(",")
                 extractSharedOrthologsList = extractSharedOrthologsList + j
         extractSharedOrthologsList = list(set(extractSharedOrthologsList))
-    
     return extractSharedOrthologsList,corresp
 
 
@@ -595,7 +666,7 @@ def continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sh
             sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList) 
 
 
-def trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName,subjectList):
+def trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName,subjectList,geneSource,orthoMode,contMethod):
     """
     Description
     -----------
@@ -619,16 +690,22 @@ def trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName
     verifiedCluster = None
     startingSpecies = None
     startingLifestage = None
-    contMethod = None
+    #contMethod = None
     test = None
     pValMethod = None
     correspList = []
     listOfUsedSpecies = speciesList.copy()
-    try:
-        matrixOrthologs = pd.read_csv('results/id/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv",index_col=0)
-    except FileNotFoundError:
-        matrixOrthologs = pd.read_csv('results/id/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0) 
-    matrixOrthologs,subjectAnnot1 = applyAnnotation(matrixOrthologs,speciesList,lifestageList) 
+    if speciesList[0] != speciesList[1]:
+        try:
+            matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv",index_col=0)
+        except FileNotFoundError:
+            matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0)
+    else:
+        try:
+            matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv",index_col=0)
+        except FileNotFoundError:
+            matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0)
+    matrixOrthologs,subjectAnnot1 = applyAnnotation(matrixOrthologs,speciesList,lifestageList)
     sharedOrthologsList,corresp = extractSharedOrthologs(matrixOrthologs,subjectAnnot1,speciesList,lifestageList,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
     correspList.append(corresp)
     dfListSharedOrthologs = []
@@ -704,7 +781,7 @@ def extractClusterLowerPvalue(statMatrix,inputClusterList):
     return outputClusterList
 
 
-def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,geneList):
+def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,geneList,orthoMode,geneSource):
     """
     Description
     -----------
@@ -734,12 +811,21 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
     scanpyOutput = basic.getAllMarkers(speciesList[1],lifestageList[1]) 
     if speciesList[0] != speciesList[1]:
         targetGenes = []
-        RBHgenesTupleList = basic.getRBHtupleList(speciesList) 
+        RBHgenesTupleList = basic.getTupleList(speciesList,orthoMode,geneSource) 
         for i in RBHgenesTupleList:
-            if i[0] in geneList:
-                targetGenes.append(i[1])
-            elif i[1] in geneList:
-                targetGenes.append(i[0])
+            if orthoMode == "one2one":
+                if i[0] in geneList:
+                    targetGenes.append(i[1])
+                elif i[1] in geneList:
+                    targetGenes.append(i[0])
+            elif orthoMode == "many2many":
+                intersectSp1 = [item for item in i[0] if item in geneList]
+                intersectSp2 = [item for item in i[1] if item in geneList]
+                if len(intersectSp1) != 0:
+                    targetGenes = targetGenes + i[1]
+                elif len(intersectSp2) != 0:
+                    targetGenes = targetGenes + i[0] 
+                #print(targetGenes)
         for i in outputClusterList:
             for k,v in scanpyOutput.items():
                 sharedGenesList = []
@@ -763,7 +849,7 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
     return verifiedCluster
 
 
-def trimOrthologsMatricesAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList):
+def trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList,geneSource,orthoMode):
     """
     Description
     -----------
@@ -787,26 +873,27 @@ def trimOrthologsMatricesAutomatic(contMethod,test,pValMethod,processType,SPS,ou
     subjectAnnot = None 
     clusterList,geneList,startingSpecies,startingLifestage = automaticIdentityStartingPoint(SPS)
     newSp,newLifestage = param.chooseNewSpeciesLifestage(subjectList)
+    print(newSp)
     speciesList = [startingSpecies,newSp] ; lifestageList = [startingLifestage,newLifestage]
     listOfUsedSpecies = speciesList.copy()
     correspList = []
     try:
         if contMethod == "orthopairsBased":
-            statMatrix = pd.read_csv('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_"+test+"_test_1000g_"+contMethod+".csv",index_col=0)
+            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_"+test+"_test_1000g.csv",index_col=0)
         elif contMethod == "genomeBased":
-            statMatrix = pd.read_csv('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_"+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0)
-        matrixOrthologs = pd.read_csv('results/id/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv",index_col=0)
+            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_"+test+"_test_1000g_"+pValMethod+".csv",index_col=0)
+        matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv",index_col=0)
     except FileNotFoundError:
-        try:
-            if contMethod == "orthopairsBased":
-                statMatrix = pd.read_csv('results/stat/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_"+test+"_test_1000g"+contMethod+".csv",index_col=0) 
-            elif contMethod == "genomeBased":
-                statMatrix = pd.read_csv('results/stat/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_"+test+"_test_1000g"+contMethod+"_"+pValMethod+".csv",index_col=0)  
-            matrixOrthologs = pd.read_csv('results/id/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0)
-        except FileNotFoundError:
-            print("\nOne of the subject does not exit")
-            return
-    verifiedCluster = verifyClusterIdentity(statMatrix,clusterList,speciesList,lifestageList,geneList)
+            try:
+                if contMethod == "orthopairsBased":
+                    statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_"+test+"_test_1000g.csv",index_col=0) 
+                elif contMethod == "genomeBased":
+                    statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_"+test+"_test_1000g_"+pValMethod+".csv",index_col=0)  
+                matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[1]+'_'+lifestageList[1]+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0)
+            except FileNotFoundError:
+                #print("\nOne of the subject does not exit")
+                return
+    verifiedCluster = verifyClusterIdentity(statMatrix,clusterList,speciesList,lifestageList,geneList,orthoMode,geneSource)
     clusterListIntegers = list(map(int, clusterList))
     sharedOrthologsList,corresp = extractSharedOrthologs(matrixOrthologs,subjectAnnot,speciesList,lifestageList,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
     correspList.append(corresp)
@@ -882,7 +969,7 @@ def finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList):
     return sharedOrthologsListPosttrim
 
 
-def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList):
+def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode):
     """
     Description
     -----------
@@ -925,23 +1012,31 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
                 statMatrix = ""
                 comparedSpecies = [startingSpecies,species] ; comparedLifestage = [startingLifestage,lifestage]
                 try:
-                    if contMethod == "orthopairsBased":
-                        statMatrix = pd.read_csv('results/stat/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+contMethod+".csv",index_col=0)
-                    elif contMethod == "genomeBased":  
-                        statMatrix = pd.read_csv('results/stat/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0) 
-                    matrixOrthologs = pd.read_csv('results/id/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0)
+                    if startingSpecies == species:
+                        statMatrix = pd.read_csv('results/stat/sameSpecies/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                        matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0)
+                    else:
+                        if contMethod == "orthopairsBased":
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                        elif contMethod == "genomeBased":  
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+pValMethod+".csv",index_col=0) 
+                        matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0) 
                 except FileNotFoundError:
                     try:
-                        if contMethod == "orthopairsBased": 
-                            statMatrix = pd.read_csv('results/stat/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+contMethod+".csv",index_col=0) 
-                        elif contMethod == "genomeBased":
-                            statMatrix = pd.read_csv('results/stat/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0) 
-                        matrixOrthologs = pd.read_csv('results/id/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0)
+                        if startingSpecies == species:
+                            statMatrix = pd.read_csv('results/stat/sameSpecies/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                            matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0) 
+                        else:
+                            if contMethod == "orthopairsBased": 
+                                statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g.csv",index_col=0) 
+                            elif contMethod == "genomeBased":
+                                statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+pValMethod+".csv",index_col=0) 
+                            matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0) 
                     except FileNotFoundError:
                         print("\nSubject "+species+" "+lifestage+" does not exit")
                         pass 
-                if len(statMatrix) != 0:  
-                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList)
+                if len(statMatrix) != 0:
+                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource)
                     clusterListIntegers = list(map(int,startingClusterList))
                     sharedOrthologsList,corresp = extractSharedOrthologs(matrixOrthologs,subjectAnnot,comparedSpecies,comparedLifestage,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
                     correspList.append(corresp)
@@ -963,11 +1058,15 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
                 lf1 = listSpeciesLifestage[i].split('_')[1] ; lf2 = listSpeciesLifestage[j].split('_')[1] 
                 comparedSpecies = [sp1,sp2] ; comparedLifestage = [lf1,lf2]
                 try:
-                    if contMethod == "orthopairsBased":  
-                        statMatrix = pd.read_csv('results/stat/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+'_'+test+"_test_1000g_"+contMethod+".csv",index_col=0)
-                    elif contMethod == "genomeBased":
-                        statMatrix = pd.read_csv('results/stat/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0)
-                    matrixOrthologs = pd.read_csv('results/id/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+"_orthologsId.csv",index_col=0)
+                    if listSpeciesLifestage[i] == listSpeciesLifestage[j]:
+                        statMatrix = pd.read_csv('results/stat/sameSpecies/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+'_'+test+"_test_1000g.csv",index_col=0)
+                        matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+"_orthologsId.csv",index_col=0)
+                    else:
+                        if contMethod == "orthopairsBased":  
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+'_'+test+"_test_1000g.csv",index_col=0)
+                        elif contMethod == "genomeBased":
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+'_'+test+"_test_1000g_"+pValMethod+".csv",index_col=0)
+                        matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+listSpeciesLifestage[i]+'_'+listSpeciesLifestage[j]+"_orthologsId.csv",index_col=0)
                 except FileNotFoundError:
                     pass
                 if len(statMatrix) != 0: 
@@ -986,23 +1085,31 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
                 statMatrix = ""
                 comparedSpecies = [startingSpecies,species] ; comparedLifestage = [startingLifestage,lifestage]
                 try:
-                    if contMethod == "orthopairsBased":  
-                        statMatrix = pd.read_csv('results/stat/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+contMethod+".csv",index_col=0)
-                    elif contMethod == "genomeBased":
-                        statMatrix = pd.read_csv('results/stat/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0) 
-                    matrixOrthologs = pd.read_csv('results/id/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0)
+                    if startingSpecies == species:
+                        statMatrix = pd.read_csv('results/stat/sameSpecies/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                        matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0) 
+                    else:
+                        if contMethod == "orthopairsBased":  
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                        elif contMethod == "genomeBased":
+                            statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+'_'+test+"_test_1000g_"+pValMethod+".csv",index_col=0) 
+                        matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+startingSpecies+'_'+startingLifestage+'_'+species+'_'+lifestage+"_orthologsId.csv",index_col=0)
                 except FileNotFoundError:
                     try:
-                        if contMethod == "orthopairsBased":  
-                            statMatrix = pd.read_csv('result/stat/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+contMethod+".csv",index_col=0) 
-                        elif contMethod == "genomeBased":
-                            statMatrix = pd.read_csv('result/stat/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv",index_col=0)  
-                        matrixOrthologs = pd.read_csv('results/id/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0)
+                        if startingSpecies == species:
+                            statMatrix = pd.read_csv('results/stat/sameSpecies/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g.csv",index_col=0)
+                            matrixOrthologs = pd.read_csv('results/id/sameSpecies/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0)
+                        else:
+                            if contMethod == "orthopairsBased":  
+                                statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g.csv",index_col=0) 
+                            elif contMethod == "genomeBased":
+                                statMatrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+'_'+test+"_test_1000g_"+pValMethod+".csv",index_col=0)  
+                            matrixOrthologs = pd.read_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+species+'_'+lifestage+'_'+startingSpecies+'_'+startingLifestage+"_orthologsId.csv",index_col=0)
                     except FileNotFoundError:
-                        print("\nSubject "+species+" "+lifestage+" does not exit")
+                        #print("\nSubject "+species+" "+lifestage+" does not exit")
                         pass
                 if len(statMatrix) != 0: 
-                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList) 
+                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource)
                     nbrOrthologs = getOrthologsMetrics(dfListSharedOrthologs,species,lifestage,verifiedCluster)
                     nbrOrthologsList.append(nbrOrthologs)
     sharedOrthologsListConcat = finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsListConcat) 
@@ -1016,7 +1123,13 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
     horizontalBarplotGenes(nbrGenesList,subjectNameBarplot,outputName)
     horizontalBarplotOrthologs(nbrOrthologsList,subjectNameBarplot2,sharedOrthologsListConcat,outputName)
     logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SPS,outputName,dfListSharedOrthologs,subjectOrderChordDiagram)
+    pfamAnnotPCO(outputName)
+    genesPfamDict = linkPfamGenes(outputName)
+    pfamCodeList = retrieveTranscriptionFactorsPfam()
+    sequencesTF(outputName,genesPfamDict,pfamCodeList)
+    getPfamAnnotTF(outputName)
     chordDiagram(subjectOrderChordDiagram,dfListSharedOrthologs,outputName)
+    return 
 
 
 def horizontalBarplotGenes(nbrGeneList,subjectNameBarplot,outputName):
@@ -1072,7 +1185,7 @@ def horizontalBarplotOrthologs(nbrOrthologsList,subjectNameBarplot,sharedOrtholo
     nbrOrthologsList.append(total)
     nbrOrthologsList.append(len(sharedOrthologsListConcat))
     subjectNameBarplot.append('Total orthologs')   
-    subjectNameBarplot.append('Pan-cnidarian') 
+    subjectNameBarplot.append('Pan-cnidarian')
     df = pd.DataFrame({'Groups':subjectNameBarplot,'Genes':nbrOrthologsList})
     df = df.sort_values(by=['Genes'])
     colorList=['#595757','#A0DB8E','#ffe599','#B7E4F1','#EEB1C7','#A7A0DA','#E7E7E7']
@@ -1191,4 +1304,112 @@ def logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SP
             else:
                 f.write("\nShared genes :\n"+', '.join(dfListSharedOrthologs[i])+"\n") 
         f.close()
-        
+
+
+def retrieveTranscriptionFactorsPfam():
+    pfamCodeList = []
+    with open("input/transcriptionFactors.txt","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] != "#":
+                pfamCode = l.split(" ")[1]
+                pfamCode = pfamCode.split(" ")[0]
+                if "PF" in pfamCode:
+                    pfamCodeList.append(pfamCode)
+            l = f.readline()
+    f.close()
+    return pfamCodeList
+            
+
+def pfamAnnotPCO(outputName):
+    if os.path.exists("results/final/"+outputName+"/shared_orthologs.fasta") == False:
+        print("PCO were not retrieved, impossible to process Pfam annotation.\n")
+    else:
+        if os.path.exists("results/fina/"+outputName+"/shared_orthologs_pfam") == False: 
+            print("Currently processing Pfam annotation of PCO.\n")
+            subprocess.call(['hmmsearch','--cut_ga','-o',"results/final/"+outputName+"/shared_orthologs_pfam",'--domtblout',"results/final/"+outputName+"/shared_orthologs_dt_out",
+                     "input/pfam/Pfam-A.hmm","results/final/"+outputName+"/shared_orthologs.fasta"])
+        print("Pfam annotation of PCO has been processed.\n")
+    return
+
+def linkPfamGenes(outputName):
+    genesPfamDict = {}
+    with open("results/final/"+outputName+"/shared_orthologs_dt_out","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] != "#":
+                tempList = l.split(" ")
+                strippedList = list(filter(None, tempList))
+                gene = strippedList[0]
+                pfam = strippedList[4].split('.')[0]
+                genesPfamDict[gene] = pfam
+            l = f.readline()
+    f.close()
+    return genesPfamDict
+
+
+def sequencesTF(outputName,genesPfamDict,pfamCodeList):
+    tfDict = {}
+    with open("results/final/"+outputName+"/shared_orthologs.fasta","r") as f:
+        l = f.readline()
+        seqFlag = False
+        prot = ""
+        while l != "":
+            if l[0] == ">":
+                gene = l.split(">")[1]
+                gene = gene.replace("\n","")
+                if gene in genesPfamDict:
+                    pfam = genesPfamDict[gene]
+                    if pfam in pfamCodeList:
+                        seqFlag = True
+            else:
+                if seqFlag == True:
+                    while l[0] != ">":
+                        prot += l
+                        l = f.readline()
+                    if "*" in prot:
+                        prot = prot.replace("*","")
+                    tfDict[gene] = prot
+                    prot = ""
+                    seqFlag = False
+            l = f.readline()
+    with open("results/final/"+outputName+"/transcription_factors.fasta", 'w') as f:
+        for k,v in tfDict.items():
+            f.write('>' + k + '\n')
+            f.write(v)
+    f.close()
+    return
+
+
+def getPfamAnnotTF(outputName):
+    tfList = []
+    with open("results/final/"+outputName+"/transcription_factors.fasta","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] == ">":
+                gene = l.replace(">","")
+                gene = gene.replace("\n","")
+                tfList.append(gene)
+            l = f.readline()
+    f.close()
+    writeList = []
+    with open("results/final/"+outputName+"/shared_orthologs_dt_out","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] != "#":
+                tempList = l.split(" ")
+                strippedList = list(filter(None, tempList))
+                gene = strippedList[0]
+                if gene in tfList:
+                    writeList.append(l)
+            else:
+                writeList.append(l)
+            l = f.readline()
+    f.close()
+    with open("results/final/"+outputName+"/transcription_factors_dt_out","w") as f:
+        f.writelines(writeList)
+    f.close()
+    return
+
+
+

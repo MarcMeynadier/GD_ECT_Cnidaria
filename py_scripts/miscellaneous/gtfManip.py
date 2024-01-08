@@ -49,7 +49,8 @@ def replaceIdSingleCell(species,geneProt):
 
 species = "Aiptasia"
 geneProt = geneIdTransform(species)
-replaceIdSingleCell(species,geneProt)
+print(geneProt['gene-LOC110251964'])
+#replaceIdSingleCell(species,geneProt)
     
 
     

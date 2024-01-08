@@ -35,7 +35,11 @@ def retrieveFastaSeq(fasta_file,targetGenes):
     line = f.readline()
     while line != "":
       if line[0] == ">":
-        spGene = line.split(">")[1] ; spGene = spGene.split(" ")[0]
+        spGene = line.split(">")[1] 
+        if " " in spGene:
+          spGene = spGene.split(" ")[0]
+        if "\n" in spGene:
+          spGene = spGene.split("\n")[0]  
         if spGene in targetGenes or len(targetGenes) == 0:
           geneList.append(spGene) 
           line = f.readline()
@@ -152,3 +156,20 @@ def longestSequences(output):
       f.write(v)
   f.close() 
 
+
+def addProteomDatabase(abbreviation,proteom):
+  proteomStr = ""
+  with open("input/proteins/"+proteom,"r") as f:
+    l = f.readline()
+    while l != "":
+      proteomStr += l
+      l = f.readline()
+  f.close()
+  proteomAbbrv = proteomStr.replace(">",">"+abbreviation+"|")
+  with open("input/proteins/metazoanProteins.fasta","a") as f:
+    f.write("\n")
+    f.write(proteomAbbrv)
+  f.close()
+
+
+addProteomDatabase("Hv","longest_isoform_HydraProteins.fasta")

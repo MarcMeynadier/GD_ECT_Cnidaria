@@ -278,7 +278,30 @@ def longestIsoformHydractinia(proteomPath,proteom):
     file.close() 
 
 
-def longestIsoformHydra(proteomPath,proteom):
+def longestIsoformHydra(species):
+    path = "../../../../species/"+species+"/raw/"
+    proteom = path+species+"Proteins.fasta"
+    gtf = path+species+"Genes.gtf"
+    gene_transcript = {}
+    with open(gtf,'r') as f:
+        l = f.readline()
+        while l != "":
+            try:
+                gene = l.split("gene_id")[1]
+                gene = gene.split(";")[0]
+                gene = gene.replace('"','')
+                gene = gene.strip()
+                gene = ">"+gene
+                transcript = l.split("protein_id")[1]
+                transcript = transcript.split(";")[0]
+                transcript = transcript.replace('"','')
+                transcript = transcript.strip()
+                gene_transcript[gene] = transcript
+            except IndexError:
+                pass
+            l = f.readline()
+    f.close()
+    geneList = []
     with open(proteom,'r') as f:
         line = f.readline()
         prot=""
@@ -288,25 +311,25 @@ def longestIsoformHydra(proteomPath,proteom):
         while line != "":
             if line[0] == ">":
                 line = line.replace("\n","")
-                transcript = line.replace('>','')
+                transcript = line.split(" ")[0]
+                transcript = transcript.replace(">","")
                 transcriptList.append(transcript)
-                genePart1 = transcript.split('.')[0]
-                genePart2 = transcript.rsplit('.')[1]
-                gene = genePart1+"."+genePart2 
-                gene = ">"+gene
-                geneList.append(gene)           
                 line = f.readline()
                 while line != "" and line[0] != ">":
                     prot += line
                     line = f.readline()
                 protList.append(prot)
                 prot = ""
+
     f.close()
-    gene_transcript = {}
+    transcript_prot = {}
+    for i in range(len(transcriptList)):
+       transcript_prot[transcriptList[i]] = protList[i]
     gene_prot = {}
-    for i in range(len(geneList)):
-        gene_transcript[geneList[i]] = transcriptList[i]
-        gene_prot[geneList[i]] = protList[i]
+    for k,v in gene_transcript.items():
+        for k2,v2 in transcript_prot.items():
+            if v == k2:
+                gene_prot[k] = v2
     for k1,v1 in gene_prot.items():
         maxLength = 0
         transcriptLength = len(v1)
@@ -317,13 +340,11 @@ def longestIsoformHydra(proteomPath,proteom):
                 else:
                     gene_prot.pop(k1,v1) 
     fileName = proteom.split('/')[-1] 
-    
-    with open(proteomPath+'longest_isoform_'+fileName, 'w') as file:
+    with open(path+'longest_isoform_'+fileName, 'w') as file:
         for k,v in gene_prot.items():
             file.write(k + '\n')
             file.write(v)
     file.close() 
-
 
 def longestIsoformAiptasia(proteomPath,proteom):
     with open(proteom,'r') as f:
@@ -340,7 +361,6 @@ def longestIsoformAiptasia(proteomPath,proteom):
                 transcript = ">"+transcript
                 transcriptList.append(transcript)
                 gene = transcript.split(".")[0]
-                gene = ">"+gene
                 geneList.append(gene)           
                 line = f.readline()
                 while line != "" and line[0] != ">":
@@ -374,15 +394,8 @@ def longestIsoformAiptasia(proteomPath,proteom):
 
 
 
-
-
-
-
-
 def main():
     species = sys.argv[1]
-    proteomPath = "../../../../species/"+species+"/raw/"
-    proteom = getProteom(proteomPath)
-    longestIsoformAiptasia(proteomPath,proteom)
+    longestIsoformHydra(species)
 
 main()

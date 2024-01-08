@@ -8,7 +8,10 @@ from bs4 import BeautifulSoup
 
 
 def fetchTaxonomy(genus,species):
-  url="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Undef&name="+genus+"+"+species+"&lvl=0&srchmode=1&keep=1&unlock"
+  if species != 'sp':
+    url="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Undef&name="+genus+"+"+species+"&lvl=0&srchmode=1&keep=1&unlock"
+  else:
+    url="https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Undef&name="+genus+"+&lvl=0&srchmode=1&keep=1&unlock"
   request = requests.get(url)
   soup = BeautifulSoup(request.text,"lxml")
   soup_str = str(soup)
@@ -16,12 +19,40 @@ def fetchTaxonomy(genus,species):
     parsedTrunk = soup_str.split('" title="superkingdom"')[1]
     parsedTrunk = parsedTrunk.split("/a></dd>")[0]
     taxo = re.findall(r'">(.*?)<',parsedTrunk)
+    if genus not in taxo:
+      taxo.append(genus)
     return taxo
   except IndexError:
+    newUrl = fetchTaxonomyById(genus,soup_str)
+    request = requests.get(newUrl)
+    soup = BeautifulSoup(request.text,"lxml")
+    soup_str = str(soup)
+    try:
+      parsedTrunk = soup_str.split('" title="superkingdom"')[1]
+      parsedTrunk = parsedTrunk.split("/a></dd>")[0]
+      taxo = re.findall(r'">(.*?)<',parsedTrunk)
+      if genus not in taxo:
+        taxo.append(genus)
+      return taxo
+    except IndexError:
+      print("Taxonomy fetching did not work, genus might be wrong.")
+      return
+
+
+def fetchTaxonomyById(genus,soup_str):
+  motif = r'<a(.*?)</a>'
+  parseList = re.findall(motif, soup_str)
+  for i in parseList:
+    if '<strong>'+genus+' &lt;'+genus+'&gt;</strong>' in i:
+      url = i.split('href="')[1]
+      url = url.split('">')[0]
+      url = url.replace("amp;","")
+      url = "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/" + url
+  if url:
+    return url
+  else:
     print("Taxonomy fetching did not work, genus might be wrong.")
     return
-
-
 
 def parseMetazoanList():
   with open("input/metazoanList.txt","r") as f:

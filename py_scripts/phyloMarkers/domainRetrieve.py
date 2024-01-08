@@ -8,7 +8,7 @@ from copy import deepcopy
 from itertools import chain
 from nltk import flatten
 from Bio.Blast.Applications import NcbiblastpCommandline
-
+import sys
 from commonFunctions import *
 from smallPicture import *
 from bigPicture import *
@@ -19,17 +19,29 @@ from scanpyLink import *
 
 def main(args):
   if not os.path.exists("output/"+args.output):
-    os.makedirs("output/"+args.output)
-  clusterList,sp,lf = inputParsing(args.output)
-  spList = retrieveSpList()
-  #concatProteom(spList,args.input)
-  if os.path.exists("output/blast/"+args.query.split(".")[0]+"BlastOut") == False:
+    os.makedirs("output/"+args.output) 
+  """
+  if os.path.exists("output/"+args.output+"/blast/"+args.query.split(".")[0]+"BlastOut") == False:
+    if os.path.exists("output/"+args.output+"/blast/") == False:
+      os.makedirs("output/"+args.output+"/blast/")
     blastQuery(args.query,args.output)
-  if os.path.exists("output/"+args.output+"/pfam/metazoanHmmOutput") == False:
-    subprocess.call(['hmmsearch','--cut_ga','-o',"output/"+args.output+"/pfam/metazoanHmmOutput",'--domtblout',"output/"+args.output+"/pfam/metazoanDtOut",
-                     "input/pfam/"+args.hmm_lib,"/Users/mmeynadier/Documents/PhD/species/metazoanProteins.fasta"])
-  domainQuery = getQueryDomains(args.query,args.output)
-  targetGenes = retrieveGenesPfam(args.output,domainQuery)
+  print("\nBlast of "+args.query.split(".")[0]+" has been processed.\n")
+  """
+  if os.path.exists("output/pfam/metazoanHmmOutput") == False:
+    if os.path.exists("output/pfam/") == False:
+      os.makedirs("output/pfam/")
+    subprocess.call(['hmmsearch','--cut_ga','-o',"output/pfam/metazoanHmmOutput",'--domtblout',"output/pfam/metazoanDtOut",
+                     "input/pfam/"+args.hmm_lib,"input/proteins/metazoanProteins.fasta"])
+  print("Pfam annotation of metazoan sequences database has been processed.\n")
+
+  domainQuery = getQueryDomains(args.query)
+  if len(domainQuery) == 0:
+    print("Domains were not retrieved correctly, please check if gene exist in Pfam output. Exit.")
+    sys.exit()
+  targetGenes = retrieveGenesPfam(domainQuery)
+  if len(targetGenes) == 0:
+    print("No other other genes with same domains has been retrieved. Exit.")
+    sys.exit()
   geneList,protList = retrieveFastaSeq("input/proteins/metazoanProteins.fasta",targetGenes)
   if args.query != None:
     args.domain = args.query.split(".")[0]
@@ -39,7 +51,7 @@ def main(args):
     os.makedirs("output/"+args.output+"/MSA")  
   if os.path.exists("output/"+args.output+"/MSA/"+args.domain+"Domains.fasta") == False:
     for i in range(len(geneList)):
-      listDomain = multiDomain(geneList[i],"output/"+args.output+"/pfam/"+dtOut)
+      listDomain = multiDomain(geneList[i],"output/pfam/"+dtOut)
       if len(listDomain) != 0:
         flag = verifyDomains(listDomain,domainQuery)
         #flag = True
@@ -48,8 +60,8 @@ def main(args):
         else:
           domainDic = trimList(listDomain)
           orderList = reorderDomainDict(domainDic)
+          #print(orderList)
           concatenateDomain(args.output,geneList[i],protList[i],orderList,domainDic,args.domain)
-
   if os.path.exists("output/"+args.output+"/MSA/"+args.domain+"MafftMSA.fasta") == False:
     mafftMSA(args.output,args.domain) 
   if os.path.exists("output/"+args.output+"/MSA/"+args.domain+"Tree.tree") == False: 
@@ -64,70 +76,10 @@ def main(args):
   dictTaxo = getDictTaxoFile()
   familiesList = retrieveFamilies(args.output,args.query,dictTaxo,"Cnidaria")
   paralogsFamilies = getParalogs(familiesList) 
-  
   #eligibleFiles = scanpyEligibleSpecies()
   scExpr(args.output,dictTaxo,paralogsFamilies,args.query.split(".")[0])
 
 
-
-  """
-  proteomPath = "input/proteins/longest_isoform_"+sp+"Proteins.fasta"
-  transcriptList = getTranscriptCellType(sp,lf,clusterList)
-  # This block is for making fasta of transcripts specific to a cell type 
-  if not os.path.exists("output/"+args.output+"/transcriptsFasta"): 
-    os.makedirs("output/"+args.output+"/transcriptsFasta")
-  if os.path.exists("output/"+args.output+"/transcriptsFasta/uniqueTranscriptsFasta.fasta") == False: 
-    transcriptSequences(transcriptList,proteomPath,args.output)
-  logPathPCO = "/Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/RBH_x_markers/results/final/"+args.pco+"/log_results.txt"
-  subjectInfo = getSubjectInfo(logPathPCO)
-  subjectPairsOrthologs = selectOrthologs(logPathPCO)
-  #orthogroups = reconstructOrthologs(subjectPairsOrthologs)
-  transcriptCellTypeSubject(subjectInfo,args.output)
-
-  fastaPathPCO = "/Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/RBH_x_markers/results/final/"+args.pco+"/shared_orthologs.fasta"
-  # This block is for running HMM on pan-cnidarian orthologs
-  if not os.path.exists("output/"+args.output+"/pfam"):
-    os.makedirs("output/"+args.output+"/pfam")
-  if os.path.exists("output/"+args.output+"/pfam/"+args.pco+"DtOut") == False:
-    subprocess.call(['hmmsearch','--cut_ga','-o',"output/"+args.output+"/pfam/"+args.pco+"HmmOutput",'--domtblout',"output/"+args.output+"/pfam/"+args.pco+"DtOut",
-                     "input/pfam/"+args.hmm_lib,fastaPathPCO])
-
-  # This block is for running HMM on transcripts
-  if os.path.exists("output/"+args.output+"/pfam/transcriptsDtOut") == False: 
-    subprocess.call(['hmmsearch','--cut_ga','-o',"output/"+args.output+"/pfam/transcriptsHmmOutput",'--domtblout',"output/"+args.output+"/pfam/transcriptsDtOut",
-                     "input/pfam/"+args.hmm_lib,"output/"+args.output+"/transcriptsFasta/uniqueTranscriptsFasta.fasta"])
-  
-  if args.method == "smallPicture":
-    # This block is for extracting specific PCO and transcripts depending on domains
-    domainPCO = subsetTranscriptDomain(args.domain,"output/"+args.output+"/pfam/"+args.pco+"DtOut")
-
-    domainTranscript = subsetTranscriptDomain(args.domain,"output/"+args.output+"/pfam/transcriptsDtOut") 
-    print(domainTranscript)
-    if len(domainTranscript) == 0:
-      print("No domain found in transcripts, exit")
-      exit()
-    domainTranscriptProt = domainTranscriptSeq(domainTranscript,"output/"+args.output+"/transcriptsFasta/uniqueTranscriptsFasta.fasta")
-
-  elif args.method == "bigPicture":
-    args.domain = "all"
-    domainTranscr,domainTranscriptProt = retrieveFastaSeq("output/"+args.output+"/transcriptsFasta/uniqueTranscriptsFasta.fasta")
-    domainTranscript = []
-    for i in domainTranscr:
-      gene = i.replace(">","")
-      gene = gene.replace("\n","")
-      domainTranscript.append(gene)
-
-  elif args.method == "PCO":
-    dtOut = "pcoOrthologsFastaDtOut"
-    args.domain = "pcoOrthologs"
-    sp = retrieveSpList()
-    pco = pcoOrthogroups()
-    print(pco)
-    domainTranscript,domainTranscriptProt = pcoOrthologsTranscripts(sp,pco,"inputClytiaCnidocytes")
-    if os.path.exists("output/"+args.output+"/pfam/"+dtOut) == False: 
-      subprocess.call(['hmmsearch','--cut_ga','-o',"output/"+args.output+"/pfam/pcoOrthologsHmmOutput",'--domtblout',"output/"+args.output+"/pfam/"+dtOut,
-                     "input/pfam/"+args.hmm_lib,"output/"+args.output+"/transcriptsFasta/pcoOrthologsTranscripts.fasta"])
-  """
 
 def getDictTaxoFile():
   dictTaxo = {}
@@ -186,47 +138,42 @@ def getParalogs(familiesList):
   return paralogsFamilies
       
 
-
-
-      
-      
-
 def verifyDomains(listDomain,domainQuery):
   verifList = []
   for i in listDomain:
-    domain = i.split("PF")[0]
-    domain = domain.split(" ")
-    domain = list(filter(None, domain))
-    verifList.append(domain[-1])  
+    tempList = i.split(" ")
+    strippedList = list(filter(None, tempList))
+    cVal = float(strippedList[11])
+    if cVal < 10e-14:
+      domain = strippedList[3]
+      verifList.append(domain)
   flag = False
-  #print("verif :",verifList)
-  #print("query :",domainQuery)
   if verifList== domainQuery:
     flag = True
   return flag
 
 
-def getQueryDomains(query,output):
+def getQueryDomains(query):
   with open("input/queries/"+query,"r") as f:
     l = f.readline()
-    queryName = l.split(" ")[0] ; queryName = queryName.replace(">","")
+    queryName = l.split(" ")[0]
+    queryName = queryName.replace(">","")
+    queryName = queryName.replace("\n","") 
   f.close()
   listDomain = []
-  with open("output/"+output+"/pfam/metazoanDtOut","r") as f:
+  with open("output/pfam/metazoanDtOut","r") as f:
     l = f.readline()
     while l != "":
       if l[0] != "#":
         geneName = l.split(" ")[0]
         if geneName == queryName:
-          domain = l.split("PF")[0]
-          domain = domain.split(" ")
-          domain = list(filter(None, domain))
-          listDomain.append(domain[-1])
-          l = f.readline()
-        else:
-          l = f.readline()
-      else:
-        l = f.readline()
+          tempList = l.split(" ")
+          strippedList = list(filter(None, tempList))
+          cVal = float(strippedList[11])
+          if cVal < 10e-14:
+            domain = strippedList[3]
+            listDomain.append(domain)
+      l = f.readline()
   f.close()
   return listDomain
 
@@ -252,35 +199,36 @@ def retrieveGenesBlast(output,query):
   f.close()
   return targetGenesList
 
-def retrieveGenesPfam(output,domainQuery):
+
+def retrieveGenesPfam(domainQuery):
   dicGeneDomain = {}
-  with open("output/"+output+"/pfam/metazoanDtOut","r") as f:
+  with open("output/pfam/metazoanDtOut","r") as f:
     l = f.readline()
     while l != "":
       if l[0] != "#":
         geneName = l.split(" ")[0]
         domainList = []
-        outputSplit = l.split(" PF")[1]
-        splitStr = ''.join(outputSplit)
-        splitStr = splitStr.split(" ")
-        splitStr = list(filter(None, splitStr))
         try:
+          outputSplit = l.split(" PF")[1]
+          splitStr = ''.join(outputSplit)
+          splitStr = splitStr.split(" ")
+          splitStr = list(filter(None, splitStr))
           evalue = splitStr[2]
+          domain = l.split("PF")[0]
+          domain = domain.split(" ")
+          domain = list(filter(None, domain))
+          domain = domain[-1]
+          if float(evalue) < 10e-14:
+            try:
+              dicGeneDomain[geneName].append(domain)
+            except KeyError:
+              dicGeneDomain[geneName] = domainList
+              dicGeneDomain[geneName].append(domain)
+          l = f.readline()
         except IndexError:
-          pass
-        domain = l.split("PF")[0]
-        domain = domain.split(" ")
-        domain = list(filter(None, domain))
-        domain = domain[-1]
-        if float(evalue) < 10e-14:
-          try:
-            dicGeneDomain[geneName].append(domain)
-          except KeyError:
-            dicGeneDomain[geneName] = domainList
-            dicGeneDomain[geneName].append(domain)
-        l = f.readline()
+          l = f.readline()
       else:
-        l = f.readline()       
+        l = f.readline()
   f.close()
   targetGenes = []
   for k,v in dicGeneDomain.items():
@@ -288,7 +236,7 @@ def retrieveGenesPfam(output,domainQuery):
       targetGenes.append(k) 
   return targetGenes
   
-  
+
 
 def concatProteom(spList,input):
   with open('output/'+input+'/blast/'+'_'.join(spList)+'_proteins.fasta', 'w') as outfile:
@@ -298,10 +246,11 @@ def concatProteom(spList,input):
                 outfile.write(line)
   outfile.close()
  
+
 def blastQuery(query,output):
   blastp = '/Users/mmeynadier/Documents/PhD/scripts/tools/ncbi-blast/bin/blastp' 
   queryPath = 'input/queries/'+query
-  dbPath = '/Users/mmeynadier/Documents/PhD/species/metazoanProteins.fasta'
+  dbPath = '/Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/phyloMarkers/input/proteins/metazoanProteins.fasta'
   queryName = query.split('.')[0]
   outPath = "/Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/phyloMarkers/output/"+output+"/blast/"+queryName+"BlastOut"
   cmd = str(NcbiblastpCommandline(cmd=blastp,query=queryPath,subject=dbPath,evalue=1e-14,out=outPath,outfmt="6 qseqid sseqid pident qcovs qlen slen length bitscore evalue"))
@@ -332,7 +281,6 @@ def pcoOrthogroups():
         usedCombination.append((j,i))
   orthoGroupsFinal = mimomu(orthoGroupsList)   
   return orthoGroupsFinal
-
 
 
 def retrieveSpList():
@@ -377,7 +325,6 @@ def pcoOrthologsTranscripts(sp,pco,output):
   return transcrReturnList,seqList
 
 
-
 def orthogroupFromBlast(sp1,sp2,pcoList):
   threshold = float(10**-5)
   listOrthoPairs = []
@@ -401,12 +348,6 @@ def orthogroupFromBlast(sp1,sp2,pcoList):
           l = f.readline()
   f.close()
   return listOrthoPairs
-
-
-
-
-
-
 
 
 def getSubjectInfo(logPCO):
@@ -457,7 +398,6 @@ def selectOrthologs(logPCO):
   subjectPairsOrthologs = dict(zip(subjectPairsList,orthologsList))
   return subjectPairsOrthologs 
   
-
 
 def mimomu(l):
   l = deepcopy(l)
@@ -579,8 +519,6 @@ def treeGenerator(output,domain):
   os.system(cmd)
 
 
-
-
 def getPanCnidarianOrthologs(pco):
   pathPCO = "/Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/RBH_x_markers/results/final/"+pco+"/shared_orthologs.fasta"
   listPCO = []
@@ -599,10 +537,11 @@ def getPanCnidarianOrthologs(pco):
 
 
 
-if __name__ == "__main__":
 
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = '')
-    #parser.add_argument('-f','--fasta',action='store',dest='fasta_file',help='single fasta database')
     parser.add_argument('-p','--pco',action='store',dest='pco',help='list of potential pan-cnidarian orthologs')
     parser.add_argument('-l','--lib',action='store',dest='hmm_lib',help='Pfam-A.hmm library file',default='Pfam-A.hmm')
     parser.add_argument('-o','--output',action='store',dest='output',help='Output name',default='')
@@ -613,7 +552,7 @@ if __name__ == "__main__":
 
     if (args.hmm_lib == None) and (args.output == None):
       print()
-      print("--db_list <list> and --output <output> are needed.")
+      print("--lib <list> and --output <output> are needed.")
       print()
       exit()
 

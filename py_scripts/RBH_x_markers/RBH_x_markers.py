@@ -39,7 +39,7 @@ def autoFullRun(args):
     -------
     None
     """
-    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList
+    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
     if SPS == None:
         print("\nStarting point subject is mandatory for automatic processing")
         SPS = param.selectStartingPointSubject()
@@ -69,24 +69,36 @@ def autoFullRun(args):
                     skipFlag = True
                     not_existing.append((sp2,lf2)) 
                     #break
-                print("\nCurrently processing "+sp1+" "+lf1+" & "+sp2+" "+lf2+"\n")
                 if skipFlag == False:
-                    RBHdfTupleList = basic.getRBHtupleList([sp1,sp2])
-                    if contMethod == "orthopairsBased":
-                        if not exists('results/stat/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_markers_matrix_list_1000g_'+contMethod+'.csv'):
-                            stat.contingencyMatrices(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],contMethod)  
-                    elif contMethod == "genomeBased":
-                        if not exists('results/stat/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_markers_matrix_list_1000g_'+contMethod+'_'+sp1+'.csv'):
-                            stat.contingencyMatrices(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],contMethod)   
-                    if contMethod == "orthopairsBased": 
-                        if not exists('results/stat/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_'+test+"_test_1000g_"+contMethod+".csv"):
-                            stat.inferentialTest([sp1,sp2],[lf1,lf2],contMethod,test,pValMethod)
-                    elif contMethod == "genomeBased":
-                        if not exists('results/stat/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv"):
-                            stat.inferentialTest([sp1,sp2],[lf1,lf2],contMethod,test,pValMethod) 
-                    if not exists('results/id/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+"_orthologsId.csv"):  
-                        id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2])
-    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList)
+                    print("\nCurrently processing "+sp1+" "+lf1+" & "+sp2+" "+lf2+"\n")
+                    RBHdfTupleList = basic.getTupleList([sp1,sp2],orthoMode,geneSource)
+                    if RBHdfTupleList == "sameSpecies":
+                       if not exists('results/stat/sameSpecies/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_markers_matrix_list_1000g.csv'):
+                            stat.contingencyMatrices(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],contMethod,orthoMode,geneSource) 
+                    else:
+                        if contMethod == "orthopairsBased":
+                            if not exists('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_markers_matrix_list_1000g.csv'):
+                                stat.contingencyMatrices(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],contMethod,orthoMode,geneSource)  
+                        elif contMethod == "genomeBased":
+                            if not exists('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_markers_matrix_list_1000g_'+sp1+'.csv'):
+                                stat.contingencyMatrices(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],contMethod,orthoMode,geneSource)   
+                    if RBHdfTupleList == "sameSpecies":
+                        if not exists('results/stat/sameSpecies/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_'+test+"_test_1000g.csv"):
+                            stat.inferentialTest(RBHdfTupleList,[sp1,sp2],[lf1,lf2],contMethod,test,pValMethod,orthoMode,geneSource)
+                    else:
+                        if contMethod == "orthopairsBased": 
+                            if not exists('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_'+test+"_test_1000g.csv"):
+                                stat.inferentialTest(RBHdfTupleList,[sp1,sp2],[lf1,lf2],contMethod,test,pValMethod,orthoMode,geneSource)
+                        elif contMethod == "genomeBased":
+                            if not exists('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+'_'+test+"_test_1000g_"+pValMethod+".csv"):
+                                stat.inferentialTest(RBHdfTupleList,[sp1,sp2],[lf1,lf2],contMethod,test,pValMethod,orthoMode,geneSource) 
+                    if RBHdfTupleList == "sameSpecies":
+                        if not exists('results/id/sameSpecies/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+"_orthologsId.csv"):  
+                            id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod)
+                    else:
+                        if not exists('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+"_orthologsId.csv"):  
+                            id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod)
+    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
                     
 
 def main(args):
@@ -104,7 +116,7 @@ def main(args):
     -------
     None
     """ 
-    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList
+    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
     spList = [] ; lifestageList = []
     if processType == "f":
         autoFullRun(args)
@@ -121,7 +133,7 @@ def main(args):
         if answer == 1:
             spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType = param.menuParameters(spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType,subjectList)
             if len(spList) != 0:
-                RBHdfTupleList = basic.getRBHtupleList(spList)
+                RBHdfTupleList = basic.getTupleList(spList,orthoMode,geneSource)
         elif answer == 2:
             markersSubjectList = []
             try:
@@ -130,12 +142,12 @@ def main(args):
             except (UnboundLocalError,IndexError):
                 print("\nChoosing species and lifestages is a mandatory step")
                 spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType = param.menuParameters(spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType,subjectList)
-                RBHdfTupleList = basic.getRBHtupleList(spList)
+                RBHdfTupleList = basic.getTupleList(spList,orthoMode,geneSource)
                 markersSubject1 = basic.getAllMarkers(spList[0],lifestageList[0])
                 markersSubject2 = basic.getAllMarkers(spList[1],lifestageList[1])
             markersSubjectList.append(markersSubject1)
             markersSubjectList.append(markersSubject2)
-            param.menuStatistics(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,iterationNbr)     
+            param.menuStatistics(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,iterationNbr,orthoMode,geneSource)     
         elif answer == 3:
             markersSubjectList = []
             if processType == "m":
@@ -145,15 +157,19 @@ def main(args):
                 except (UnboundLocalError,IndexError):
                     print("\nChoosing species and lifestages is a mandatory step")
                     spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType = param.menuParameters(spList,lifestageList,contMethod,test,pValMethod,iterationNbr,SPS,processType,subjectList)
-                    RBHdfTupleList = basic.getRBHtupleList(spList)
+                    RBHdfTupleList = basic.getTupleList(spList,orthoMode)
                     markersSubject1 = basic.getAllMarkers(spList[0],lifestageList[0])
                     markersSubject2 = basic.getAllMarkers(spList[1],lifestageList[1])
+                
                 markersSubjectList.append(markersSubject1)
                 markersSubjectList.append(markersSubject2)
-                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList)
+                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
             elif processType == "a" or processType=="sa":
+                if SPS == None:
+                    print("\nStarting point subject is mandatory for automatic processing")
+                    SPS = param.selectStartingPointSubject()
                 RBHdfTupleList = None
-                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList)
+                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
         elif answer == 4:
             sys.exit(0)
     
@@ -169,6 +185,8 @@ if __name__ == "__main__":
     parser.add_argument('-v','--pval',action='store',dest='pValMethod',help='Statistical method for combining p-values - tippett / fisher / pearson / stouffer / mudholkar_george')
     parser.add_argument('-i','--iteration',action='store',dest='iterationNbr',help='Iteration number for bootstrap method')
     parser.add_argument('-s','--starting',action='store',dest='SPS',help='Text file of starting point subject - e.g. automaticIdentityCnidocytes.txt')
+    parser.add_argument('-m','--orthoMode',action='store',dest='orthoMode',help='Mode for retrieving orthologs from RBH output - one2one / many2many')
+    parser.add_argument('-g','--geneSource',action='store',dest='geneSource',help='Source of retrieved orthologs - RBH / orthofinder')  
     parser.add_argument('-o','--output',action='store',dest='outputName',help='Folder name of output results')
 
     args = parser.parse_args()
@@ -185,6 +203,10 @@ if __name__ == "__main__":
         args.SPS = None
     if args.subjectList == None:
         args.subjectList = param.selectSubjectList()
+    if args.orthoMode == None:
+        args.orthoMode = "one2one"
+    if args.geneSource == None:
+        args.geneSource = "RBH"  
 
 print(args)
 main(args)

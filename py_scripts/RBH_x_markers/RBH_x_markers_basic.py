@@ -1,33 +1,15 @@
+from functools import reduce
 import pandas as pd
 import numpy as np
 import random
+import pickle
+import os.path
 
-def getRBHdata(spList):
-    """
-    Description
-    -----------
-    Retrieves RBH data between species and merge them in a dataframe.
 
-    Parameters
-    ----------
-    spList
-        list, contains species of subjects for comparison.
-    
-    Returns
-    -------
-    RBHdf,
-        pandas.core.frame.DataFrame, dataframe of one-to-one orthologs between two species.
-    """ 
-    sp1 = spList[0] ; sp2 = spList[1]
-    forward = pd.read_csv('input/RBH/'+sp1+'_'+sp2+'.txt',sep="\t")
-    forward = forward.drop(forward[forward.evalue > 10e-14].index)
-    forward = forward.drop(forward[forward.evalue == 0].index)
-    backward = pd.read_csv('input/RBH/'+sp2+'_'+sp1+'.txt',sep="\t") 
-    backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']]
-    backward = backward.drop(backward[backward.evalue > 10e-14].index)
-    backward = backward.drop(backward[backward.evalue == 0].index)  
-    RBHdf = pd.merge(forward,backward,on=['qseqid','sseqid'],how='inner')
-    return RBHdf
+def unique(list1):
+    res = reduce(lambda re, x: re+[x] if x not in re else re, list1, [])
+    return res
+
 
 def getAllMarkers(sp,lifestage):
     """
@@ -56,29 +38,168 @@ def getAllMarkers(sp,lifestage):
     return markersDictSp
 
 
-def createRBHtuple(RBHdf):
+
+def getRBHdata(spList,orthoMode):
     """
     Description
     -----------
-    Creates a list of tuple where each tuple corresponds to pairs of one-to-one orthologs.
+    Retrieves RBH data between species and merge them in a dataframe.
 
     Parameters
     ----------
-    RBHdf,
-        pandas.core.frame.DataFrame, dataframe of one-to-one orthologs between two species.
+    spList
+        list, contains species of subjects for comparison.
     
     Returns
     -------
-    RBHgenesTupleList
-        list, list of tuple where each tuple corresponds to pairs of one-to-one orthologs. 
-    """ 
-    RBHgenes1 = RBHdf.iloc[:,0].tolist() 
-    RBHgenes2 = RBHdf.iloc[:,1].tolist() 
-    RBHgenesTupleList = list(tuple(zip(RBHgenes1,RBHgenes2)))
-    return RBHgenesTupleList
+    RBHdf,
+        pandas.core.frame.DataFrame, dataframe of one-to-one orthologs between two species.
+    """
+    outputList = [] 
+    sp1 = spList[0] ; sp2 = spList[1]
+    forward = pd.read_csv('input/RBH/'+sp1+'_'+sp2+'.txt',sep="\t")
+    forward = forward.drop(forward[forward.evalue > 10e-14].index)
+    forward = forward.drop(forward[forward.evalue == 0].index)
+    backward = pd.read_csv('input/RBH/'+sp2+'_'+sp1+'.txt',sep="\t") 
+    backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']]
+    backward = backward.drop(backward[backward.evalue > 10e-14].index)
+    backward = backward.drop(backward[backward.evalue == 0].index) 
+    forwardListTuple = [] ; backwardListTuple = []
+    forwardListSimple = [] ; backwardListSimple = [] 
+    if orthoMode == "one2one":
+        RBHdf = pd.merge(forward,backward,on=['qseqid','sseqid'],how='inner')
+        RBHgenes1 = RBHdf.iloc[:,0].tolist() 
+        RBHgenes2 = RBHdf.iloc[:,1].tolist() 
+        outputList = list(tuple(zip(RBHgenes1,RBHgenes2)))
+        with open('results/basic/RBH/one2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+            pickle.dump(outputList, f)
+    elif orthoMode == "one2many":
+        for index, row in forward.iterrows():
+            tupleOrth = (row['qseqid'],row['sseqid'])
+            forwardListTuple.append(tupleOrth) 
+            forwardListSimple.append(row['sseqid']) 
+        for i in forwardListSimple:
+            orthList = []
+            for j in forwardListTuple:
+                if i in j:
+                    if i == j[0]:
+                        orthList.append(j[1])
+                    elif i == j[1]:
+                        orthList.append(j[0])
+            if len(orthList) != 0:
+                orthTuple = (i,orthList)
+                outputList.append(orthTuple)
+        with open('results/basic/RBH/one2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+            pickle.dump(outputList,f)
+    elif orthoMode == "many2one":
+        for index, row in backward.iterrows():
+            tupleOrth = (row['qseqid'],row['sseqid'])
+            backwardListTuple.append(tupleOrth) 
+            backwardListSimple.append(row['qseqid']) 
+        for i in backwardListSimple:
+            orthList = []
+            for j in backwardListTuple:
+                if i in j:
+                    if i == j[0]:
+                        orthList.append(j[1])
+                    elif i == j[1]:
+                        orthList.append(j[0])
+            if len(orthList) != 0:
+                orthTuple = (i,orthList)
+                outputList.append(orthTuple)
+        with open('results/basic/RBH/many2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+            pickle.dump(outputList,f)  
+    elif orthoMode == "many2many":
+        for index, row in forward.iterrows():
+            tupleOrth = (row['qseqid'],row['sseqid'])
+            forwardListTuple.append(tupleOrth) 
+            forwardListSimple.append(row['qseqid'])
+        for index, row in backward.iterrows():
+            tupleOrth = (row['qseqid'],row['sseqid'])
+            backwardListTuple.append(tupleOrth) 
+            backwardListSimple.append(row['sseqid']) 
+            megaListForward = [] ; megaListBackward = []
+        for i in forwardListSimple:
+            testList = []
+            for j in backwardListTuple:
+                if i in j:
+                    if j[0] == i:
+                        testList.append(j[1])
+                    elif j[1] == i:
+                        testList.append(j[0])
+                    tupleOrth = ([i],testList)
+                    megaListForward.append(tupleOrth)
+        for i in backwardListSimple:
+            testList = []
+            for j in forwardListTuple:
+                if i in j:
+                    if j[0] == i:
+                        testList.append(j[1])
+                    elif j[1] == i:
+                        testList.append(j[0])
+                    tupleOrth = (testList,[i])
+                    megaListBackward.append(tupleOrth)
+        many2manyTuple = ()
+        for i in megaListForward:
+            for j in megaListBackward:
+                addFlag = False
+                if len(np.intersect1d(i[0],j[0])) != 0:
+                    addFlag = True
+                    orthSp1 = i[0] + j[0]
+                    orthSp2 = i[1] + j[1]
+                if len(np.intersect1d(i[1],j[1])) != 0:
+                    addFlag = True
+                    orthSp1 = i[0] + j[0]
+                    orthSp2 = i[1] + j[1] 
+                if addFlag == True:
+                    orthSp1 = unique(orthSp1)
+                    orthSp2 = unique(orthSp2)
+                    many2manyTuple = (orthSp1,orthSp2)
+                    outputList.append(many2manyTuple)          
+        outputList = unique(outputList)
+        with open('results/basic/RBH/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+            pickle.dump(outputList,f)
+    return outputList
 
 
-def getRBHtupleList(spList):
+
+def getOrthofinderData(spList,orthoMode):
+    outputList = []
+    pathFile = "input/orthofinder/." 
+    fileNames = os.listdir(pathFile)
+    for i in fileNames:
+        if spList[0]+"Proteins" in i:
+            pathFile = pathFile.replace(".",i)
+            pathFile += "/."
+            fileNames = os.listdir(pathFile) 
+    
+    if orthoMode == "many2many":
+        for i in fileNames:
+            if spList[1]+"Proteins" in i:
+                pathFile = pathFile.replace(".",i) 
+                orthofinderOutput = pd.read_csv(pathFile,sep="\t")
+                for index, row in orthofinderOutput.iterrows():
+                    sp1 = row[1] ; sp2 = row[2]
+                    if ', ' in sp1:
+                        sp1 = sp1.split(', ')
+                    else:
+                        sp1 = sp1.split()
+                    if ', ' in sp2:
+                        sp2 = sp2.split(', ')
+                    else:
+                        sp2 = sp2.split()
+                    outputList.append((sp1,sp2))
+                    with open('results/basic/orthofinder/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+                        pickle.dump(outputList,f)
+    elif orthoMode == "one2one":
+        print("\nOrthomode one2one is not supported with Orthofinder data.\n")
+        exit()
+    return outputList
+
+
+
+
+def getTupleList(spList,orthoMode,geneSource):
     """
     Description
     -----------
@@ -95,11 +216,28 @@ def getRBHtupleList(spList):
         list, list of tuple where each tuple corresponds to pairs of one-to-one orthologs.
     """ 
     if spList[0] != spList[1]:
-        RBHdf = getRBHdata(spList) 
-        RBHdfTupleList = createRBHtuple(RBHdf)
+        pathFile1 = 'results/basic/'+geneSource+'/'+orthoMode+'/'+spList[0]+'_'+spList[1]+'_orthologs.csv' 
+        pathFile2 = 'results/basic/'+geneSource+'/'+orthoMode+'/'+spList[1]+'_'+spList[0]+'_orthologs.csv'  
+        if os.path.exists(pathFile1) == False:
+            if os.path.exists(pathFile2) == False:
+                print("\nCurrently processing RBH output in "+orthoMode+" orthologs mode.")
+                if geneSource == "RBH":
+                    RBHdfTupleList = getRBHdata(spList,orthoMode)
+                    return RBHdfTupleList
+                elif geneSource == "orthofinder":
+                    RBHdfTupleList = getOrthofinderData(spList,orthoMode)
+                    return RBHdfTupleList
+            else:
+                with open(pathFile2, "rb") as f:
+                    RBHdfTupleList = pickle.load(f)
+                    return RBHdfTupleList 
+        else:        
+            with open(pathFile1, "rb") as f:
+                RBHdfTupleList = pickle.load(f)
+                return RBHdfTupleList 
     else:
-        RBHdfTupleList = "Decorator"
-    return RBHdfTupleList
+        RBHdfTupleList = "sameSpecies"
+        return RBHdfTupleList
 
 
 def shuffleTuple(RBHgenesTupleList):
@@ -128,99 +266,6 @@ def shuffleTuple(RBHgenesTupleList):
     return shuffleList
 
 
-def countOrthologsPairs(RBHgenesTupleList,markersDictSpList,reciprocality):
-    """
-    Description
-    -----------
-    Count the different number of cases for building contingency matrix, where cases depend on the reciprocality parameter. 
-
-    Parameters
-    ----------
-    RBHgenesTupleList
-        list, contains tuples of one-to-one orthologs between two species.
-    markersDictSpList
-        list, contains dictionnary for each species where keys of the dictionnaries are cluster number and values are list of marker genes.
-    reciprocality,
-        str, determines which case of the contingency matrix is calculated. 
-    Returns
-    -------
-    matrixDf
-        pandas.core.frame.DataFrame, dataframe that contains number of cases between every combination of cell clusters of the two subjects, where case depend on the reciprocality parameter. 
-    """ 
-    totalCount = []
-    sp1MarkersDict = markersDictSpList[0]
-    sp2MarkersDict = markersDictSpList[1]
-    if RBHgenesTupleList != "Decorator":
-        for k1,v1 in sp1MarkersDict.items(): 
-            clusterMarkersCount = []
-            for k2,v2 in sp2MarkersDict.items():
-                count = 0
-                countOrthologsPairs = 0
-                for i in RBHgenesTupleList: 
-                    if reciprocality=="yes":
-                        if (i[1] in v1 and i[0] in v2):
-                            countOrthologsPairs += 1
-                    elif reciprocality=="no":
-                        if (i[1] not in v1 and i[0] not in v2):
-                            countOrthologsPairs += 1
-                    elif reciprocality=="sp1":
-                        if (i[1] in v1 and i[0] not in v2):
-                            countOrthologsPairs += 1
-                    elif reciprocality=="sp2":
-                        if (i[1] not in v1 and i[0] in v2):
-                            countOrthologsPairs += 1
-                    count += 1 
-                clusterMarkersCount.append(countOrthologsPairs)
-            totalCount.append(clusterMarkersCount)
-    else:    
-        allConcatGenes = []
-        for k1,v1 in sp1MarkersDict.items():
-            for k2,v2 in sp2MarkersDict.items():
-                concatGenes = list(set(v1 + v2))
-                allConcatGenes = allConcatGenes + concatGenes
-        allConcatGenes = list(set(allConcatGenes))
-        if reciprocality=="yes":
-            for k1,v1 in sp1MarkersDict.items(): 
-                clusterCountShared = []
-                for k2,v2 in sp2MarkersDict.items():
-                    countGenesShared = 0 
-                    for i in allConcatGenes:
-                        if (i in v1 and i in v2):
-                            countGenesShared+=1
-                    clusterCountShared.append(countGenesShared)
-                totalCount.append(clusterCountShared)  
-        elif reciprocality=="sp1":
-            for k1,v1 in sp1MarkersDict.items():
-                clusterCountSp1 = []
-                for k2,v2 in sp2MarkersDict.items():
-                    countGenesSp1 = 0 
-                    for i in allConcatGenes:
-                        if (i in v1 and i not in v2):
-                            countGenesSp1+=1
-                    clusterCountSp1.append(countGenesSp1)
-                totalCount.append(clusterCountSp1)   
-        elif reciprocality=="sp2": 
-            for k1,v1 in sp1MarkersDict.items():
-                clusterCountSp2 = []
-                for k2,v2 in sp2MarkersDict.items():
-                    countGenesSp2 = 0 
-                    for i in allConcatGenes:
-                        if (i not in v1 and i in v2):
-                            countGenesSp2+=1
-                    clusterCountSp2.append(countGenesSp2)
-                totalCount.append(clusterCountSp2)    
-        elif reciprocality=="no": 
-            for k1,v1 in sp1MarkersDict.items():
-                clusterCountNone = []
-                for k2,v2 in sp2MarkersDict.items():
-                    countGenesNone = 0 
-                    for i in allConcatGenes:
-                        if (i not in v1 and i not in v2):
-                            countGenesNone+=1
-                    clusterCountNone.append(countGenesNone)
-                totalCount.append(clusterCountNone)    
-    matrixDf = pd.DataFrame(totalCount) 
-    return matrixDf
 
 
 def longestIsoforms(proteom):
@@ -253,7 +298,9 @@ def longestIsoforms(proteom):
         return geneList
     
  
-def searchCorrespondingOrth(RBHgenesTupleList,gene):
+
+
+def searchCorrespondingOrth(RBHgenesTupleList,gene,orthoMode):
     """
     Description
     -----------
@@ -271,108 +318,63 @@ def searchCorrespondingOrth(RBHgenesTupleList,gene):
     correspondingOrth
         str, name of the ortholog corresponding to the input gene.
     """
-    for i in RBHgenesTupleList: 
-        if gene in i:
-            if gene == i[0]:
+    if orthoMode == "one2one":
+        for i in RBHgenesTupleList: 
+            if gene in i:
+                if gene == i[0]:
+                    correspondingOrth = i[1]
+                    return correspondingOrth
+                elif gene == i[1]:
+                    correspondingOrth = i[0]
+                    return correspondingOrth
+    elif orthoMode == "many2many":
+       for i in RBHgenesTupleList: 
+            if gene in i[0]:
                 correspondingOrth = i[1]
-                return correspondingOrth
-            elif gene == i[1]:
+                return correspondingOrth,i[0]
+            elif gene in i[1]:
                 correspondingOrth = i[0]
-                return correspondingOrth
+                return correspondingOrth,i[1]
             
-             
-def countContingencyTable(RBHgenesTupleList,markersDictSpList,species,spList):
-    """
-    Description
-    -----------
-    Builds contingency matrix in order to apply statistical test to test equivalence between cell clusters of two subjects.
 
-    Parameters
-    ----------
-    RBHgenesTupleList
-        list, contains tuples of one-to-one orthologs between two species.
-    markersDictSpList
-        list, contains dictionnary for each species where keys of the dictionnaries are cluster number and values are list of marker genes.
-    species
-        str, species of subject.
-    spList
-        list, contains species of subjects for comparison. 
-    
-    Returns
-    -------
-    matrixList
-        list, contains dataframe for each cases of contingency matrix in order to apply statistical test to test equivalence between cell clusters of two subjects.
-    """
-    proteom = 'input/proteins/longest_isoform_'+species+'Proteins.fasta'
-    geneList = longestIsoforms(proteom)
-    if species == spList[0]:
-        sp1MarkersDict = markersDictSpList[0]
-        sp2MarkersDict = markersDictSpList[1]
-    elif species == spList[1]:
-        sp1MarkersDict = markersDictSpList[1]
-        sp2MarkersDict = markersDictSpList[0]
-    orthologsList = []
-    if RBHgenesTupleList != "Decorator":
-        for i in RBHgenesTupleList:
-            orthologsList = np.append(orthologsList,i[0]) ; orthologsList = np.append(orthologsList,i[1])
+def genesCounting(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList):
+    spOrderFlag = blankOrderTest(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList)
+    sp1MarkersDict = markersDictSpList[0]
+    sp2MarkersDict = markersDictSpList[1]
     caseA = []
     caseB = []
     caseC = []
     caseD = []
-    if RBHgenesTupleList != "Decorator":
-        for k1,v1 in sp1MarkersDict.items():
-            clusterCaseA = []
-            clusterCaseB = []
-            clusterCaseC = []
-            clusterCaseD = []
-            for k2,v2 in sp2MarkersDict.items():
-                caseAcount = 0
-                caseBcount = 0
-                caseCcount = 0
-                caseDcount = 0
-                for i in geneList:
-                    if i in orthologsList:
-                        correspondingGene = searchCorrespondingOrth(RBHgenesTupleList,i)
-                        if (i in v1 and correspondingGene in v2):
-                            caseAcount +=1
-                        elif (i in v1 and correspondingGene not in v2):
-                            caseBcount +=1
-                        elif (i not in v1 and correspondingGene in v2):
-                            caseCcount += 1
-                        elif (i not in v1 and correspondingGene not in v2):
-                            caseDcount += 1
-                    else:
-                        if i in v1:
-                            caseBcount += 1
-                        else:
-                            caseDcount += 1 
-                clusterCaseA.append(caseAcount)
-                clusterCaseB.append(caseBcount) 
-                clusterCaseC.append(caseCcount)
-                clusterCaseD.append(caseDcount) 
-            caseA.append(clusterCaseA)
-            caseB.append(clusterCaseB)
-            caseC.append(clusterCaseC)
-            caseD.append(clusterCaseD)
-    else: # Same species different lifestages
+    if RBHtupleList == "sameSpecies":
         allConcatGenes = []
         for k1,v1 in sp1MarkersDict.items():
             for k2,v2 in sp2MarkersDict.items():
                 concatGenes = list(set(v1 + v2))
-                allConcatGenes = allConcatGenes + concatGenes
+            allConcatGenes = allConcatGenes + concatGenes
         allConcatGenes = list(set(allConcatGenes))
-
-        for k1,v1 in sp1MarkersDict.items():
-            clusterCaseA = []
-            clusterCaseB = []
-            clusterCaseC = []
-            clusterCaseD = []
-            for k2,v2 in sp2MarkersDict.items():
-                caseAcount = 0
-                caseBcount = 0
-                caseCcount = 0
-                caseDcount = 0
-            
+    if contMethod == "genomeBased":
+        proteom = 'input/proteins/longest_isoform_'+species+'Proteins.fasta'
+        geneList = longestIsoforms(proteom)
+        orthologsList = []
+        if species == spList[0]:
+            sp1MarkersDict = markersDictSpList[0]
+            sp2MarkersDict = markersDictSpList[1]
+        elif species == spList[1]:
+            sp1MarkersDict = markersDictSpList[1]
+            sp2MarkersDict = markersDictSpList[0]
+        for i in RBHtupleList:
+            orthologsList = np.append(orthologsList,i[0]) ; orthologsList = np.append(orthologsList,i[1])
+    for k1, v1 in sp1MarkersDict.items():
+        clusterCaseA = []
+        clusterCaseB = []
+        clusterCaseC = []
+        clusterCaseD = []
+        for k2, v2 in sp2MarkersDict.items():
+            caseAcount = 0
+            caseBcount = 0
+            caseCcount = 0
+            caseDcount = 0
+            if RBHtupleList == "sameSpecies":
                 for i in allConcatGenes:
                     if i in v1 and i in v2:
                         caseAcount += 1
@@ -381,15 +383,75 @@ def countContingencyTable(RBHgenesTupleList,markersDictSpList,species,spList):
                     elif i not in v1 and i in v2:
                         caseCcount += 1
                     elif i not in v1 and i not in v2:
-                        caseDcount += 1
-                clusterCaseA.append(caseAcount)
-                clusterCaseB.append(caseBcount) 
-                clusterCaseC.append(caseCcount)
-                clusterCaseD.append(caseDcount)
-            caseA.append(clusterCaseA)
-            caseB.append(clusterCaseB)
-            caseC.append(clusterCaseC)
-            caseD.append(clusterCaseD)               
+                        caseDcount += 1 
+            else:
+                if orthoMode == "one2one" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        if (i[1] in v1 and i[0] in v2):
+                            caseAcount += 1 
+                        elif (i[1] not in v1 and i[0] in v2):
+                            caseBcount += 1
+                        elif (i[1] in v1 and i[0] not in v2):
+                            caseCcount += 1
+                        elif (i[1] not in v1 and i[0] not in v2):
+                            caseDcount += 1 
+                elif orthoMode == "SCO" and contMethod == "orthopairsBased":
+                    pass
+                elif orthoMode == "one2many" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        intersect=[item for item in i[1] if item in v2] 
+                        if len(intersect) !=0 and i[0] in v1:
+                            caseAcount += len(intersect) + 1
+                        elif len(intersect) == 0 and i[0] in v1:
+                            caseBcount += 1
+                        elif len(intersect) != 0 and i[0] not in v1:
+                            caseCcount += len(intersect)
+                        elif len(intersect) == 0 and i[0] not in v1:
+                            caseDcount += 1
+                elif orthoMode == "one2one" and contMethod == "genomeBased":
+                    for i in geneList:
+                        if i in orthologsList:
+                            correspondingGene = searchCorrespondingOrth(RBHtupleList,i,orthoMode)
+                            if (i in v1 and correspondingGene in v2):
+                                caseAcount +=1
+                            elif (i in v1 and correspondingGene not in v2):
+                                caseBcount +=1
+                            elif (i not in v1 and correspondingGene in v2):
+                                caseCcount += 1
+                            elif (i not in v1 and correspondingGene not in v2):
+                                caseDcount += 1
+                        else:
+                            if i in v1:
+                                caseBcount += 1
+                            else:
+                                caseDcount += 1
+                elif orthoMode == "many2many":
+                    for i in RBHtupleList:
+                        if spOrderFlag == True:
+                            intersectSp1 = [item for item in i[0] if item in v1]
+                            intersectSp2 = [item for item in i[1] if item in v2]
+                        else:
+                            intersectSp1 = [item for item in i[0] if item in v2]
+                            intersectSp2 = [item for item in i[1] if item in v1]
+                        ratioSp1 = len(intersectSp1)/len(i[0])
+                        ratioSp2 = len(intersectSp2)/len(i[1]) 
+                        if ratioSp1 != 0 and ratioSp2 != 0: 
+                            caseAcount += ratioSp1 + ratioSp2 
+                        elif ratioSp1 != 0 and ratioSp2 == 0:
+                            caseBcount += ratioSp1
+                        elif ratioSp1 == 0 and ratioSp2 != 0:
+                            caseCcount += ratioSp2
+                        elif ratioSp1 == 0 and ratioSp2 == 0:
+                            caseDcount += 1 
+            clusterCaseA.append(caseAcount)
+            clusterCaseB.append(caseBcount)
+            clusterCaseC.append(caseCcount)
+            clusterCaseD.append(caseDcount)
+        caseA.append(clusterCaseA)
+        caseB.append(clusterCaseB)
+        caseC.append(clusterCaseC)
+        caseD.append(clusterCaseD)  
+        print("A :",caseA) ; print("B :",caseB) ; print("C :",caseC) ; print("D :",caseD) 
     matrixList = []
     matrixDfCaseA = pd.DataFrame(caseA)
     matrixDfCaseA = matrixDfCaseA.values.tolist()
@@ -401,11 +463,121 @@ def countContingencyTable(RBHgenesTupleList,markersDictSpList,species,spList):
     matrixDfCaseD = matrixDfCaseD.values.tolist()
     matrixList.append(matrixDfCaseA) ; matrixList.append(matrixDfCaseB)
     matrixList.append(matrixDfCaseC) ; matrixList.append(matrixDfCaseD) 
-    return matrixList            
+    return matrixList
 
 
-
-#def many2many():
-
-                   
-        
+def blankOrderTest(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList):
+    sp1MarkersDict = markersDictSpList[0]
+    sp2MarkersDict = markersDictSpList[1]
+    caseA = []
+    caseB = []
+    caseC = []
+    caseD = []
+    if RBHtupleList == "sameSpecies":
+        allConcatGenes = []
+        for k1,v1 in sp1MarkersDict.items():
+            for k2,v2 in sp2MarkersDict.items():
+                concatGenes = list(set(v1 + v2))
+            allConcatGenes = allConcatGenes + concatGenes
+        allConcatGenes = list(set(allConcatGenes))
+    if contMethod == "genomeBased":
+        proteom = 'input/proteins/longest_isoform_'+species+'Proteins.fasta'
+        geneList = longestIsoforms(proteom)
+        orthologsList = []
+        if species == spList[0]:
+            sp1MarkersDict = markersDictSpList[0]
+            sp2MarkersDict = markersDictSpList[1]
+        elif species == spList[1]:
+            sp1MarkersDict = markersDictSpList[1]
+            sp2MarkersDict = markersDictSpList[0]
+        for i in RBHtupleList:
+            orthologsList = np.append(orthologsList,i[0]) ; orthologsList = np.append(orthologsList,i[1])
+    for k1, v1 in sp1MarkersDict.items():
+        clusterCaseA = []
+        clusterCaseB = []
+        clusterCaseC = []
+        clusterCaseD = []
+        for k2, v2 in sp2MarkersDict.items():
+            caseAcount = 0
+            caseBcount = 0
+            caseCcount = 0
+            caseDcount = 0
+            if RBHtupleList == "sameSpecies":
+                for i in allConcatGenes:
+                    if i in v1 and i in v2:
+                        caseAcount += 1
+                    elif i in v1 and i not in v2:
+                        caseBcount += 1
+                    elif i not in v1 and i in v2:
+                        caseCcount += 1
+                    elif i not in v1 and i not in v2:
+                        caseDcount += 1 
+            else:
+                if orthoMode == "one2one" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        if (i[1] in v1 and i[0] in v2):
+                            caseAcount += 1 
+                        elif (i[1] not in v1 and i[0] in v2):
+                            caseBcount += 1
+                        elif (i[1] in v1 and i[0] not in v2):
+                            caseCcount += 1
+                        elif (i[1] not in v1 and i[0] not in v2):
+                            caseDcount += 1 
+                elif orthoMode == "SCO" and contMethod == "orthopairsBased":
+                    pass
+                elif orthoMode == "one2many" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        intersect=[item for item in i[1] if item in v2] 
+                        if len(intersect) !=0 and i[0] in v1:
+                            caseAcount += len(intersect) + 1
+                        elif len(intersect) == 0 and i[0] in v1:
+                            caseBcount += 1
+                        elif len(intersect) != 0 and i[0] not in v1:
+                            caseCcount += len(intersect)
+                        elif len(intersect) == 0 and i[0] not in v1:
+                            caseDcount += 1
+                elif orthoMode == "one2one" and contMethod == "genomeBased":
+                    for i in geneList:
+                        if i in orthologsList:
+                            correspondingGene = searchCorrespondingOrth(RBHtupleList,i,orthoMode)
+                            if (i in v1 and correspondingGene in v2):
+                                caseAcount +=1
+                            elif (i in v1 and correspondingGene not in v2):
+                                caseBcount +=1
+                            elif (i not in v1 and correspondingGene in v2):
+                                caseCcount += 1
+                            elif (i not in v1 and correspondingGene not in v2):
+                                caseDcount += 1
+                        else:
+                            if i in v1:
+                                caseBcount += 1
+                            else:
+                                caseDcount += 1
+                elif orthoMode == "many2many":
+                    for i in RBHtupleList:
+                        intersectSp1 = [item for item in i[0] if item in v1]
+                        intersectSp2 = [item for item in i[1] if item in v2]
+                        ratioSp1 = len(intersectSp1)/len(i[0])
+                        ratioSp2 = len(intersectSp2)/len(i[1]) 
+                        if ratioSp1 != 0 and ratioSp2 != 0: 
+                            caseAcount += ratioSp1 + ratioSp2 
+                        elif ratioSp1 != 0 and ratioSp2 == 0:
+                            caseBcount += ratioSp1
+                        elif ratioSp1 == 0 and ratioSp2 != 0:
+                            caseCcount += ratioSp2
+                        elif ratioSp1 == 0 and ratioSp2 == 0:
+                            caseDcount += 1 
+            clusterCaseA.append(caseAcount)
+            clusterCaseB.append(caseBcount)
+            clusterCaseC.append(caseCcount)
+            clusterCaseD.append(caseDcount)
+        caseA.append(clusterCaseA)
+        caseB.append(clusterCaseB)
+        caseC.append(clusterCaseC)
+        caseD.append(clusterCaseD) 
+        spOrderFlag = None
+        if (caseA == caseB) or (caseA==caseC) or (caseB==caseC):
+            spOrderFlag = False
+        else:
+            spOrderFlag = True
+        return spOrderFlag

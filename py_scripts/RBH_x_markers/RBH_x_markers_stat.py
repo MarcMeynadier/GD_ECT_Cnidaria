@@ -13,8 +13,9 @@ import statsmodels.api as sm
 from functools import reduce
 import scipy.stats as stats
 import RBH_x_markers_basic as basic
+import os
 
-def contingencyMatrices(RBHgenesTupleList,markersDictSpList,spList,lifestageList,contMethod):
+def contingencyMatrices(RBHtupleList,markersSubjectList,spList,lifestageList,contMethod,orthoMode,geneSource):
     """
     Description
     -----------
@@ -36,30 +37,34 @@ def contingencyMatrices(RBHgenesTupleList,markersDictSpList,spList,lifestageList
     Returns
     ----------
     None
-    """
-    if contMethod == "orthopairsBased":
-        matrixList = []
-        reciprocalOrthologsMatrix = basic.countOrthologsPairs(RBHgenesTupleList,markersDictSpList,"yes")
-        reciprocalOrthologsMatrix = reciprocalOrthologsMatrix.values.tolist()
-        nonReciprocalOrthologsMatrix = basic.countOrthologsPairs(RBHgenesTupleList,markersDictSpList,"no")
-        nonReciprocalOrthologsMatrix = nonReciprocalOrthologsMatrix.values.tolist()
-        orthologsSp1Matrix = basic.countOrthologsPairs(RBHgenesTupleList,markersDictSpList,"sp1")
-        orthologsSp1Matrix = orthologsSp1Matrix.values.tolist()
-        orthologsSp2Matrix = basic.countOrthologsPairs(RBHgenesTupleList,markersDictSpList,"sp2") 
-        orthologsSp2Matrix = orthologsSp2Matrix.values.tolist()
-        matrixList.append(reciprocalOrthologsMatrix)
-        matrixList.append(orthologsSp1Matrix)
-        matrixList.append(orthologsSp2Matrix) 
-        matrixList.append(nonReciprocalOrthologsMatrix)
-        with open('results/stat/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_orthopairsBased.csv', "wb") as f:   
+    """ 
+    if RBHtupleList == "sameSpecies":
+        resPath = 'results/stat/sameSpecies'
+    else:
+        if geneSource == "RBH":
+            resPath = 'results/stat/RBH/'+orthoMode+'/'+contMethod 
+        elif geneSource == "orthofinder":
+            resPath = 'results/stat/orthofinder/'+orthoMode+'/'+contMethod 
+    if not os.path.exists(resPath):
+        os.makedirs(resPath)
+    if RBHtupleList == "sameSpecies":
+        species = None
+        matrixList = basic.genesCounting(RBHtupleList,markersSubjectList,orthoMode,contMethod,species,spList)
+        with open(resPath+'/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g.csv', "wb") as f:   
             pickle.dump(matrixList, f)
-    elif contMethod == "genomeBased":
-        matrixListSp1 = basic.countContingencyTable(RBHgenesTupleList,markersDictSpList,spList[0],spList)
-        with open('results/stat/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_genomeBased_'+spList[0]+'.csv', "wb") as f:   
-            pickle.dump(matrixListSp1, f) 
-        matrixListSp2 = basic.countContingencyTable(RBHgenesTupleList,markersDictSpList,spList[1],spList)  
-        with open('results/stat/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_genomeBased_'+spList[1]+'.csv', "wb") as f:   
-            pickle.dump(matrixListSp2, f) 
+    else:
+        if contMethod == "orthopairsBased":
+            species = None
+            matrixList = basic.genesCounting(RBHtupleList,markersSubjectList,orthoMode,contMethod,species,spList)
+            with open(resPath+'/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g.csv', "wb") as f:   
+                pickle.dump(matrixList, f)
+        elif contMethod == "genomeBased":
+            matrixListSp1 = basic.genesCounting(RBHtupleList,markersSubjectList,orthoMode,contMethod,spList[0],spList)
+            with open(resPath+'/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+spList[0]+'.csv', "wb") as f:   
+                pickle.dump(matrixListSp1, f)
+            matrixListSp2 = basic.genesCounting(RBHtupleList,markersSubjectList,orthoMode,contMethod,spList[1],spList)  
+            with open(resPath+'/'+spList[0]+'_'+lifestageList[0]+'_'+spList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+spList[1]+'.csv', "wb") as f:   
+                pickle.dump(matrixListSp2, f) 
     print("Contingency matrix processed for "+spList[0]+' '+lifestageList[0]+' & '+spList[1]+' '+lifestageList[1]) 
     return
 
@@ -96,7 +101,7 @@ def combinePvalues(matrixSp1,matrixSp2,pValMethod):
     return outputMatrix
 
 
-def inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod):
+def inferentialTest(RBHtupleList,speciesList,lifestageList,contMethod,test,pValMethod,orthoMode,geneSource):
     """
     Description
     -----------
@@ -119,9 +124,14 @@ def inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod):
     """
     listMatrices = []
     testMatrixList = []
-    if contMethod == "orthopairsBased":
+    if RBHtupleList != "sameSpecies":
+        resPath = 'results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/' 
+        print(resPath)
+    else:
+        resPath = 'results/stat/sameSpecies/'
+    if contMethod == "orthopairsBased" or RBHtupleList == "sameSpecies":
         testMatrix = []
-        with open('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_orthopairsBased.csv', "rb") as f:   
+        with open(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g.csv', "rb") as f:   
             matrixList = pickle.load(f)
         listMatrices.append(matrixList)
         for i in range(len(matrixList[0])):
@@ -132,9 +142,9 @@ def inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod):
         testMatrixList.append(testMatrix)
     elif contMethod == "genomeBased":
         #if speciesList[0] != speciesList[1]:
-        with open('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_genomeBased_'+speciesList[0]+'.csv', "rb") as f:   
+        with open(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+speciesList[0]+'.csv', "rb") as f:   
             matrixList = pickle.load(f)
-        with open('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_genomeBased_'+speciesList[1]+'.csv', "rb") as f:   
+        with open(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+speciesList[1]+'.csv', "rb") as f:   
             matrixList2 = pickle.load(f) 
         listMatrices.append(matrixList) ; listMatrices.append(matrixList2)
         for m in range(len(listMatrices)):
@@ -145,19 +155,6 @@ def inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod):
                     listZero.append(0)
                 testMatrix.append(listZero)
             testMatrixList.append(testMatrix)
-        """
-        else:
-            testMatrix = []
-            with open('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_genomeBased_'+speciesList[0]+'.csv', "rb") as f:   
-                matrixList = pickle.load(f)
-                listMatrices.append(matrixList)
-            for i in range(len(matrixList[0])):
-                listZero = []
-                for j in range(len(matrixList[0][i])):
-                    listZero.append(0)
-                testMatrix.append(listZero)
-            testMatrixList.append(testMatrix)
-        """
     outputMatricesList = []
     for m in range(len(listMatrices)):
         for i in range(len(testMatrixList[m])):
@@ -194,10 +191,10 @@ def inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod):
     rowLen = len(resultMatrix)
     pAdjustedMatrix = pd.DataFrame(np.array(pAdjustedMatrix[1]).reshape(rowLen,colLen))
     if contMethod == "genomeBased":
-        pAdjustedMatrix.to_csv('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv")   
-    elif contMethod == "orthopairsBased":
-        pAdjustedMatrix.to_csv('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_'+test+"_test_1000g_"+contMethod+".csv")
-    heatmapGeneration(speciesList,lifestageList,contMethod,test,pValMethod)
+        pAdjustedMatrix.to_csv(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_'+test+"_test_1000g_"+pValMethod+".csv")   
+    elif contMethod == "orthopairsBased" or RBHtupleList == "sameSpecies":
+        pAdjustedMatrix.to_csv(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_'+test+"_test_1000g.csv")
+    heatmapGeneration(RBHtupleList,speciesList,lifestageList,contMethod,test,pValMethod,orthoMode,geneSource)
     print("Inferential test processed for "+speciesList[0]+' '+lifestageList[0]+' & '+speciesList[1]+' '+lifestageList[1])
     return 
 
@@ -281,7 +278,7 @@ def randomMatricesGenerator(markersDictList,RBHdfTupleList,reciprocality):
     randomMatrix = basic.countOrthologsPairs(shuffleTupleList,markersDictList,reciprocality)
     return randomMatrix
 
-def bootstrapTest(markersDictList,RBHdfTupleList,speciesList,lifestageList,iterationNbr):
+def bootstrapTest(markersDictList,RBHdfTupleList,speciesList,lifestageList,iterationNbr,orthoMode):
     """
     Description
     -----------
@@ -304,7 +301,7 @@ def bootstrapTest(markersDictList,RBHdfTupleList,speciesList,lifestageList,itera
     ----------
     None
     """ 
-    with open('results/stat/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_orthopairsBased.csv', "rb") as f:   
+    with open('results/stat/'+orthoMode+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_orthopairsBased.csv', "rb") as f:   
         matrixList = pickle.load(f)
     originalMatrix = matrixList[0]
     originalMatrix = pd.DataFrame(originalMatrix)
@@ -353,11 +350,20 @@ def bootstrapTest(markersDictList,RBHdfTupleList,speciesList,lifestageList,itera
     return
 
 
-def heatmapGeneration(listSp,listLifestage,contMethod,test,pValMethod):
-    if contMethod == "orthopairsBased":
-        matrix = pd.read_csv("results/stat/"+listSp[0]+"_"+listLifestage[0]+"_"+listSp[1]+"_"+listLifestage[1]+"_"+test+"_test_1000g_"+contMethod+".csv").drop(columns=['Unnamed: 0'])
-    elif contMethod == "genomeBased":
-        matrix = pd.read_csv('results/stat/'+listSp[0]+'_'+listLifestage[0]+'_'+listSp[1]+'_'+listLifestage[1]+'_'+test+"_test_1000g_"+contMethod+"_"+pValMethod+".csv").drop(columns=['Unnamed: 0']) 
+def heatmapGeneration(RBHtupleList,listSp,listLifestage,contMethod,test,pValMethod,orthoMode,geneSource):
+    if RBHtupleList == "sameSpecies":
+        resPath = 'results/stat/sameSpecies/heatmap/'
+    else:
+        resPath = 'results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/heatmap/'
+    if not os.path.exists(resPath):
+        os.makedirs(resPath)
+    if RBHtupleList == "sameSpecies":
+        matrix = pd.read_csv('results/stat/sameSpecies/'+listSp[0]+"_"+listLifestage[0]+"_"+listSp[1]+"_"+listLifestage[1]+"_"+test+"_test_1000g.csv").drop(columns=['Unnamed: 0'])
+    else:
+        if contMethod == "orthopairsBased":
+            matrix = pd.read_csv("results/stat/"+geneSource+'/'+orthoMode+'/'+contMethod+'/'+listSp[0]+"_"+listLifestage[0]+"_"+listSp[1]+"_"+listLifestage[1]+"_"+test+"_test_1000g.csv").drop(columns=['Unnamed: 0'])
+        elif contMethod == "genomeBased":
+            matrix = pd.read_csv('results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+listSp[0]+'_'+listLifestage[0]+'_'+listSp[1]+'_'+listLifestage[1]+'_'+test+"_test_1000g_"+pValMethod+".csv").drop(columns=['Unnamed: 0']) 
     matrix = np.log10(matrix) * -1 
     matrix = pd.DataFrame.transpose(matrix)
     plt.figure(figsize=(11,9))
@@ -365,4 +371,4 @@ def heatmapGeneration(listSp,listLifestage,contMethod,test,pValMethod):
     plt.title('Cell clusters equivalence between '+listSp[0]+" "+listLifestage[0]+" and "+listSp[1]+" "+listLifestage[1], weight='bold',pad=20)
     plt.xlabel('Cell clusters of '+listSp[0]+" "+listLifestage[0],labelpad=20)
     plt.ylabel('Cell clusters of '+listSp[1]+" "+listLifestage[1],labelpad=20)
-    plt.savefig("results/stat/heatmap/"+listSp[0]+"_"+listLifestage[0]+"_"+listSp[1]+"_"+listLifestage[1]+"_"+test+"_test_1000g_"+contMethod+".png") 
+    plt.savefig(resPath+listSp[0]+"_"+listLifestage[0]+"_"+listSp[1]+"_"+listLifestage[1]+"_"+test+"_test_1000g.png") 

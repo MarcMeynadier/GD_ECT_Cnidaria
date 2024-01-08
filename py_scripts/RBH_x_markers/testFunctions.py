@@ -17,6 +17,8 @@ import sys
 import re
 from pheatmap import pheatmap
 from functools import reduce
+from RBH_x_markers_basic import *
+from RBH_x_markers_stat import *
 
 """
 def readPfamFile(path,file):
@@ -136,96 +138,220 @@ def unique(list1):
     return res
 
 
-def getRBHdata(spList,orthoMode):
-    """
-    Description
-    -----------
-    Retrieves RBH data between species and merge them in a dataframe.
-
-    Parameters
-    ----------
-    spList
-        list, contains species of subjects for comparison.
-    
-    Returns
-    -------
-    RBHdf,
-        pandas.core.frame.DataFrame, dataframe of one-to-one orthologs between two species.
-    """ 
-    sp1 = spList[0] ; sp2 = spList[1]
-    forward = pd.read_csv('input/RBH/'+sp1+'_'+sp2+'.txt',sep="\t")
-    forward = forward.drop(forward[forward.evalue > 10e-14].index)
-    forward = forward.drop(forward[forward.evalue == 0].index)
-    backward = pd.read_csv('input/RBH/'+sp2+'_'+sp1+'.txt',sep="\t") 
-    backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']]
-    backward = backward.drop(backward[backward.evalue > 10e-14].index)
-    backward = backward.drop(backward[backward.evalue == 0].index) 
-    forwardListTuple = [] ; backwardListTuple = []
-    forwardListSimple = [] ; backwardListSimple = [] 
-    if orthoMode == "one-to-one":
-        RBHdf = pd.merge(forward,backward,on=['qseqid','sseqid'],how='inner')
-        #with open('results/basic/one2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
-        #    pickle.dump(RBHdf, f)
-    elif orthoMode == "many-to-many":
-        for index, row in forward.iterrows():
-           tupleOrth = (row['qseqid'],row['sseqid'])
-           forwardListTuple.append(tupleOrth) 
-           forwardListSimple.append(row['qseqid'])
-        for index, row in backward.iterrows():
-           tupleOrth = (row['qseqid'],row['sseqid'])
-           backwardListTuple.append(tupleOrth) 
-           backwardListSimple.append(row['sseqid']) 
-        megaListForward = [] ; megaListBackward = []
-        for i in forwardListSimple:
-            testList = []
-            for j in backwardListTuple:
-                if i in j:
-                    if j[0] == i:
-                        testList.append(j[1])
-                    elif j[1] == i:
-                        testList.append(j[0])
-                    
-                    tupleOrth = ([i],testList)
-            megaListForward.append(tupleOrth)
-        megaListForward.pop(0) 
-        for i in backwardListSimple:
-            testList = []
-            for j in forwardListTuple:
-                if i in j:
-                    if j[0] == i:
-                        testList.append(j[1])
-                    elif j[1] == i:
-                        testList.append(j[0])
-                    tupleOrth = (testList,[i])
-            megaListBackward.append(tupleOrth)
-        many2manyTuple = ()
-        many2manyList = [] 
-        for i in megaListForward:
-            for j in megaListBackward:
-                addFlag = False
-                if len(np.intersect1d(i[0],j[0])) != 0:
-                    addFlag = True
-                    orthSp1 = i[0] + j[0]
-                    orthSp2 = i[1] + j[1]
-                if len(np.intersect1d(i[1],j[1])) != 0:
-                    addFlag = True
-                    orthSp1 = i[0] + j[0]
-                    orthSp2 = i[1] + j[1] 
-                if addFlag == True:
-                    orthSp1 = unique(orthSp1)
-                    orthSp2 = unique(orthSp2)
-                    many2manyTuple = (orthSp1,orthSp2)
-                    many2manyList.append(many2manyTuple)          
-        many2manyList = unique(many2manyList)
-        with open('results/basic/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
-            pickle.dump(many2manyList, f)
-
-        
-                     
-
-    #return RBHdf
 
 
 
-spList = ["Clytia","Hydra"]
-getRBHdata(spList,"many-to-many")
+def manipData(spList,orthoMode,geneSource): 
+    try:
+        with open('results/basic/'+geneSource+'/'+orthoMode+'/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "rb") as f:
+            RBHtupleList = pickle.load(f)
+    except FileNotFoundError:
+        with open('results/basic/'+geneSource+'/'+orthoMode+'/'+spList[1]+'_'+spList[0]+'_orthologs.csv', "rb") as f:
+            RBHtupleList = pickle.load(f)
+    return RBHtupleList
+
+
+
+def genesCounting(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList):
+    sp1MarkersDict = markersDictSpList[0]
+    sp2MarkersDict = markersDictSpList[1]
+    caseA = []
+    caseB = []
+    caseC = []
+    caseD = []
+    if RBHtupleList == "Decorator":
+        allConcatGenes = []
+        for k1,v1 in sp1MarkersDict.items():
+            for k2,v2 in sp2MarkersDict.items():
+                concatGenes = list(set(v1 + v2))
+            allConcatGenes = allConcatGenes + concatGenes
+        allConcatGenes = list(set(allConcatGenes))
+    if contMethod == "genomeBased":
+        proteom = 'input/proteins/longest_isoform_'+species+'Proteins.fasta'
+        geneList = longestIsoforms(proteom)
+        orthologsList = []
+        if species == spList[0]:
+            sp1MarkersDict = markersDictSpList[0]
+            sp2MarkersDict = markersDictSpList[1]
+        elif species == spList[1]:
+            sp1MarkersDict = markersDictSpList[1]
+            sp2MarkersDict = markersDictSpList[0]
+        for i in RBHtupleList:
+            orthologsList = np.append(orthologsList,i[0]) ; orthologsList = np.append(orthologsList,i[1])
+    for k1, v1 in sp1MarkersDict.items():
+        clusterCaseA = []
+        clusterCaseB = []
+        clusterCaseC = []
+        clusterCaseD = []
+        for k2, v2 in sp2MarkersDict.items():
+            caseAcount = 0
+            caseBcount = 0
+            caseCcount = 0
+            caseDcount = 0
+            if RBHtupleList == "Decorator":
+                for i in allConcatGenes:
+                    if i in v1 and i in v2:
+                        caseAcount += 1
+                    elif i in v1 and i not in v2:
+                        caseBcount += 1
+                    elif i not in v1 and i in v2:
+                        caseCcount += 1
+                    elif i not in v1 and i not in v2:
+                        caseDcount += 1 
+            else:
+                if orthoMode == "one2one" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        if (i[1] in v1 and i[0] in v2):
+                            caseAcount += 1 
+                        elif (i[1] not in v1 and i[0] in v2):
+                            caseBcount += 1
+                        elif (i[1] in v1 and i[0] not in v2):
+                            caseCcount += 1
+                        elif (i[1] not in v1 and i[0] not in v2):
+                            caseDcount += 1 
+                elif orthoMode == "many2many" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        intersectSp1 = [item for item in i[0] if item in v1]
+                        intersectSp2 = [item for item in i[1] if item in v2]
+                        ratioSp1 = len(intersectSp1)/len(i[0])
+                        ratioSp2 = len(intersectSp2)/len(i[1]) 
+                        if ratioSp1 != 0 and ratioSp2 != 0: 
+                            caseAcount += ratioSp1 + ratioSp2 
+                        elif ratioSp1 != 0 and ratioSp2 == 0:
+                            caseBcount += ratioSp1
+                        elif ratioSp1 == 0 and ratioSp2 != 0:
+                            caseCcount += ratioSp2
+                        elif ratioSp1 == 0 and ratioSp2 == 0:
+                            caseDcount += 1 
+                elif orthoMode == "SCO" and contMethod == "orthopairsBased":
+                    pass
+                elif orthoMode == "one2many" and contMethod == "orthopairsBased":
+                    for i in RBHtupleList:
+                        intersect=[item for item in i[1] if item in v2] 
+                        if len(intersect) !=0 and i[0] in v1:
+                            caseAcount += len(intersect) + 1
+                        elif len(intersect) == 0 and i[0] in v1:
+                            caseBcount += 1
+                        elif len(intersect) != 0 and i[0] not in v1:
+                            caseCcount += len(intersect)
+                        elif len(intersect) == 0 and i[0] not in v1:
+                            caseDcount += 1
+                elif orthoMode == "one2one" and contMethod == "genomeBased":
+                    for i in geneList:
+                        if i in orthologsList:
+                            correspondingGene = searchCorrespondingOrth(RBHtupleList,i,orthoMode)
+                            if (i in v1 and correspondingGene in v2):
+                                caseAcount +=1
+                            elif (i in v1 and correspondingGene not in v2):
+                                caseBcount +=1
+                            elif (i not in v1 and correspondingGene in v2):
+                                caseCcount += 1
+                            elif (i not in v1 and correspondingGene not in v2):
+                                caseDcount += 1
+                        else:
+                            if i in v1:
+                                caseBcount += 1
+                            else:
+                                caseDcount += 1
+                elif orthoMode == "many2many" and contMethod == "genomeBased": 
+                    alreadyCountedGenes = []
+                    for i in geneList:
+                        if i in orthologsList:
+                            correspondingManyOrthologsSp1,correspondingManyOrthologsSp2 = searchCorrespondingOrth(RBHtupleList,i,orthoMode)
+                            if (correspondingManyOrthologsSp1 not in alreadyCountedGenes) and (correspondingManyOrthologsSp2 not in alreadyCountedGenes): 
+                                ratioSp1 = sum(x in correspondingManyOrthologsSp1 for x in v2) / len(correspondingManyOrthologsSp1)                   
+                                ratioSp2 = sum(x in correspondingManyOrthologsSp2 for x in v1) / len(correspondingManyOrthologsSp2) 
+                                caseAcount += (ratioSp1 + ratioSp2) / 2
+                                caseBcount += ratioSp1 
+                                caseCcount += ratioSp2 
+                                caseDcount += 2 - (ratioSp1 + ratioSp2) 
+                                alreadyCountedGenes.append(correspondingManyOrthologsSp1) ; alreadyCountedGenes.append(correspondingManyOrthologsSp2)
+            clusterCaseA.append(caseAcount)
+            clusterCaseB.append(caseBcount)
+            clusterCaseC.append(caseCcount)
+            clusterCaseD.append(caseDcount)
+        caseA.append(clusterCaseA)
+        caseB.append(clusterCaseB)
+        caseC.append(clusterCaseC)
+        caseD.append(clusterCaseD)  
+        print("A :",caseA) ; print("B :",caseB) ; print("C :",caseC) ; print("D :",caseD) 
+    matrixList = []
+    matrixDfCaseA = pd.DataFrame(caseA)
+    matrixDfCaseA = matrixDfCaseA.values.tolist()
+    matrixDfCaseB = pd.DataFrame(caseB)
+    matrixDfCaseB = matrixDfCaseB.values.tolist()
+    matrixDfCaseC = pd.DataFrame(caseC)
+    matrixDfCaseC = matrixDfCaseC.values.tolist()
+    matrixDfCaseD = pd.DataFrame(caseD)
+    matrixDfCaseD = matrixDfCaseD.values.tolist()
+    matrixList.append(matrixDfCaseA) ; matrixList.append(matrixDfCaseB)
+    matrixList.append(matrixDfCaseC) ; matrixList.append(matrixDfCaseD) 
+    return matrixList
+
+
+
+"""
+def getOrthofinderData(spList):
+    many2manyList = []
+    pathFile = "input/orthofinder/." 
+    fileNames = os.listdir(pathFile)
+    for i in fileNames:
+        if spList[0]+"Proteins" in i:
+            pathFile = pathFile.replace(".",i)
+            pathFile += "/."
+            fileNames = os.listdir(pathFile) 
+    for i in fileNames:
+        if spList[1]+"Proteins" in i:
+            pathFile = pathFile.replace(".",i) 
+            orthofinderOutput = pd.read_csv(pathFile,sep="\t")
+            for index, row in orthofinderOutput.iterrows():
+                sp1 = row[1] ; sp2 = row[2]
+                if ', ' in sp1:
+                    sp1 = sp1.split(', ')
+                else:
+                    sp1 = sp1.split()
+                if ', ' in sp2:
+                    sp2 = sp2.split(', ')
+                else:
+                    sp2 = sp2.split()
+                many2manyList.append((sp1,sp2))
+                with open('results/basic/orthofinder/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+                    pickle.dump(many2manyList,f)
+    return 
+"""
+
+
+"""
+def basicOrthofinder(spList):
+    used_combinations = []
+    for i in spList:
+        for j in spList:
+            if i != j:
+                if [i,j] not in used_combinations and [j,i] not in used_combinations:
+                    spCombination = [i,j]
+                    many2manyList = getOrthofinderData(spCombination)
+                    used_combinations.append(spCombination)
+"""
+                
+
+
+
+species = None
+spList = ["Clytia","Nematostella"]
+lifestageList = ["medusa","polyp"]
+contMethod="orthopairsBased"
+orthoMode = "many2many"
+geneSource = "orthofinder"
+test="Fisher"
+pValMethod="tippett"
+
+#getOrthofinderData(spList)
+RBHtupleList = manipData(spList,orthoMode,geneSource)
+markersSubject1 = getAllMarkers(spList[0],lifestageList[0])
+markersSubject2 = getAllMarkers(spList[1],lifestageList[1])
+markersSubjectList = []
+markersSubjectList.append(markersSubject1)
+markersSubjectList.append(markersSubject2)
+matrixList = genesCounting(RBHtupleList,markersSubjectList,orthoMode,contMethod,species,spList)
+#many2manyList = getOrthofinderData(spList)
+#print(many2manyList)

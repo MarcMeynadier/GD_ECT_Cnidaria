@@ -285,9 +285,10 @@ def chooseNewSpeciesLifestage(subjectList):
     choiceSLifestage 
         str, manually choose lifestage of species for comparison.
     """
-    speciesList,lifestageList = automaticSpeciesLifestage(subjectList)  
+    speciesList,lifestageList = automaticSpeciesLifestage(subjectList) 
     lock = False
     lock2 = False
+    print("Species list : "+', '.join(speciesList))
     while lock==False:
         print("\nSpecies: ") 
         choiceSp1 = input()
@@ -295,6 +296,7 @@ def chooseNewSpeciesLifestage(subjectList):
             lock=True
         else:
             print("\nPlease choose a species in the list")
+    print("Lifestage list : "+', '.join(lifestageList))
     while lock2==False:
         print("\nLifestage: ") 
         choiceSp2 = input()
@@ -604,7 +606,7 @@ def menuStatisticsDisplay():
     return 
 
 
-def menuStatistics(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,iterationNbr):
+def menuStatistics(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,iterationNbr,orthoMode,geneSource):
     """
     Description
     -----------
@@ -635,11 +637,11 @@ def menuStatistics(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList
                 continue
             break
         if answer == 1:
-            stat.contingencyMatrices(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod)  
+            stat.contingencyMatrices(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,orthoMode,geneSource)  
         elif answer == 2:
-            stat.inferentialTest(speciesList,lifestageList,contMethod,test,pValMethod)
+            stat.inferentialTest(RBHgenesTupleList,speciesList,lifestageList,contMethod,test,pValMethod,orthoMode,geneSource)
         elif answer == 3:
-            stat.bootstrapTest(markersDictSpList,RBHgenesTupleList,speciesList,lifestageList,iterationNbr)
+            stat.bootstrapTest(markersDictSpList,RBHgenesTupleList,speciesList,lifestageList,iterationNbr,orthoMode)
         elif answer == 4:
             return    
         
@@ -675,7 +677,7 @@ def menuIdentityDisplay():
     print("\n")
     return
 
-def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList):
+def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode):
     """
     Description
     -----------
@@ -713,14 +715,14 @@ def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,c
                 continue
             break
         if answer == 1:
-            id.getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList)
+            id.getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,geneSource,orthoMode,contMethod)
         elif answer == 2:
             if processType=="m":
-                id.trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName,subjectList)
+                id.trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName,subjectList,geneSource,orthoMode,contMethod)
             elif processType=="sa":
-                id.trimOrthologsMatricesAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList)
+                id.trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList,geneSource,orthoMode)
             elif processType=="a":
-                id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList)
+                id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
         elif answer == 3:
             return   
         

@@ -32,20 +32,23 @@ def scExpr(output,dictTaxo,paralogsFamilies,query):
             abbrv = j.split("|")[0]
             gene = j.split("|")[1]
             species = dictTaxo[abbrv][-1]
+            #print(gene)
+            #print(species)
             for k in lfList:
                 if os.path.exists(pathSc+species+"_"+k+".h5ad"):
                     scanpyFile = sc.read_h5ad(pathSc+species+"_"+k+".h5ad")
                     with plt.rc_context():  
                         try:
                             sc.pl.umap(scanpyFile,color=gene,show=False)
+                            plt.savefig("output/"+output+"/scanpy/"+query+"_subtree"+str(countSubtrees)+"/"+j+"_"+k+".pdf", bbox_inches="tight")
+                            plt.close()
                         except KeyError:
                             print(gene+" expression was not retrieved\n")
-                        plt.close()
-                        plt.savefig("output/"+output+"/scanpy/"+query+"_subtree"+str(countSubtrees)+"/"+j+"_"+k+".pdf", bbox_inches="tight")
         countSubtrees += 1
-                    
+    return
+
             
-def cellTypeAssessment(output,query):
+
      
 
 
