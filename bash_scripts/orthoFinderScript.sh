@@ -1,7 +1,6 @@
 #!/bin/bash
 
-SPECIES1=$1
-SPECIES2=$2
+SPECIES=$speciesFile
 
 cd /scratch2/genomes/mmeynadier/species/
 if [ -d "crossSpecies" ]; then
