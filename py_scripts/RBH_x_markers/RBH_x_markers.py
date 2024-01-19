@@ -40,6 +40,7 @@ def autoFullRun(args):
     None
     """
     contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
+    basic.creatingOutputPath(geneSource,orthoMode,contMethod)
     if SPS == None:
         print("\nStarting point subject is mandatory for automatic processing")
         SPS = param.selectStartingPointSubject()

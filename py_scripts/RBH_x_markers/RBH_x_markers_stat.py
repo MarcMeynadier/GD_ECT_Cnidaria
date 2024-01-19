@@ -95,7 +95,10 @@ def combinePvalues(matrixSp1,matrixSp2,pValMethod):
         outputRow = []
         for j in range(len(dfSp1[i])):
             pval = stats.combine_pvalues([dfSp1[i][j],dfSp2[i][j]],method=pValMethod)
-            outputRow.append(pval[1])
+            pvalReturn = pval[1]
+            if pvalReturn == 0.0:
+                pvalReturn = 1e-293 
+            outputRow.append(pvalReturn)
         outputMatrix.append(outputRow)
     outputMatrix = pd.DataFrame(outputMatrix)
     return outputMatrix
@@ -126,7 +129,6 @@ def inferentialTest(RBHtupleList,speciesList,lifestageList,contMethod,test,pValM
     testMatrixList = []
     if RBHtupleList != "sameSpecies":
         resPath = 'results/stat/'+geneSource+'/'+orthoMode+'/'+contMethod+'/' 
-        print(resPath)
     else:
         resPath = 'results/stat/sameSpecies/'
     if contMethod == "orthopairsBased" or RBHtupleList == "sameSpecies":
@@ -141,7 +143,6 @@ def inferentialTest(RBHtupleList,speciesList,lifestageList,contMethod,test,pValM
             testMatrix.append(listZero)
         testMatrixList.append(testMatrix)
     elif contMethod == "genomeBased":
-        #if speciesList[0] != speciesList[1]:
         with open(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+speciesList[0]+'.csv', "rb") as f:   
             matrixList = pickle.load(f)
         with open(resPath+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+'_markers_matrix_list_1000g_'+speciesList[1]+'.csv', "rb") as f:   
@@ -165,16 +166,28 @@ def inferentialTest(RBHtupleList,speciesList,lifestageList,contMethod,test,pValM
                 pStat = ""
                 if test == "Fisher":
                     pStat = stats.fisher_exact(testDf,alternative='greater')
-                    testMatrixList[m][i][j] = pStat[1]
+                    pvalReturn = pStat[1]
+                    if pvalReturn == 0.0:
+                        pvalReturn = 1e-293 
+                    testMatrixList[m][i][j] = pvalReturn
                 elif test == "Barnard":
                     pStat = stats.barnard_exact(testDf)
-                    testMatrixList[m][i][j] = pStat.pvalue
+                    pvalReturn = pStat.pvalue
+                    if pvalReturn == 0.0:
+                        pvalReturn = 1e-293 
+                    testMatrixList[m][i][j] = pvalReturn
                 elif test =="Chi2":
                     pStat = stats.chi2_contingency(testDf)
-                    testMatrixList[m][i][j] = pStat[1]
+                    pvalReturn = pStat[1]
+                    if pvalReturn == 0.0:
+                        pvalReturn = 1e-293 
+                    testMatrixList[m][i][j] = pvalReturn
                 elif test == "Boschloo":
                     pStat = stats.boschloo_exact(testDf)
-                    testMatrixList[m][i][j] = pStat.pvalue
+                    pvalReturn = pStat.pvalue
+                    if pvalReturn == 0.0:
+                        pvalReturn = 1e-293 
+                    testMatrixList[m][i][j] = pvalReturn
         outputTestMatrix = pd.DataFrame(testMatrixList[m])
         outputMatricesList.append(outputTestMatrix)
     if contMethod == "orthopairsBased":
@@ -187,7 +200,7 @@ def inferentialTest(RBHtupleList,speciesList,lifestageList,contMethod,test,pValM
     resultMatrix = resultMatrix.values.tolist()
     flattenMatrix = reduce(lambda a, b: a + b, resultMatrix) 
     pAdjustedMatrix = sm.stats.multipletests(pvals=flattenMatrix,method="bonferroni")
-    colLen = len(resultMatrix[0]) 
+    colLen = len(resultMatrix[0])
     rowLen = len(resultMatrix)
     pAdjustedMatrix = pd.DataFrame(np.array(pAdjustedMatrix[1]).reshape(rowLen,colLen))
     if contMethod == "genomeBased":

@@ -10,6 +10,7 @@ def scanpyEligibleSpecies():
     for i in os.listdir("input/scanpy/"):
         if i.endswith(".h5ad"):
             eligibleFiles.append(i)
+    print(eligibleFiles)
     return eligibleFiles
 
 

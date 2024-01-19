@@ -1,4 +1,5 @@
 from functools import reduce
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import random
@@ -297,7 +298,21 @@ def longestIsoforms(proteom):
                     line = f.readline()
         return geneList
     
- 
+
+def creatingOutputPath(geneSource,orthoMode,contMethod):
+    basicPath = "results/basic/"+geneSource+"/"+orthoMode
+    statPath = "results/stat/"+geneSource+"/"+orthoMode+"/"+contMethod
+    idPath = "results/id/"+geneSource+"/"+orthoMode+"/"+contMethod
+    sameSpeciesStatPath = 'results/stat/sameSpecies'
+    sameSpeciesIdPath = 'results/id/sameSpecies'
+    Path(basicPath).mkdir(parents=True, exist_ok=True)
+    Path(statPath).mkdir(parents=True, exist_ok=True) 
+    Path(idPath).mkdir(parents=True, exist_ok=True)
+    Path(sameSpeciesStatPath).mkdir(parents=True, exist_ok=True) 
+    Path(sameSpeciesIdPath).mkdir(parents=True, exist_ok=True)  
+    return
+
+
 
 
 def searchCorrespondingOrth(RBHgenesTupleList,gene,orthoMode):
@@ -395,19 +410,6 @@ def genesCounting(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,sp
                             caseCcount += 1
                         elif (i[1] not in v1 and i[0] not in v2):
                             caseDcount += 1 
-                elif orthoMode == "SCO" and contMethod == "orthopairsBased":
-                    pass
-                elif orthoMode == "one2many" and contMethod == "orthopairsBased":
-                    for i in RBHtupleList:
-                        intersect=[item for item in i[1] if item in v2] 
-                        if len(intersect) !=0 and i[0] in v1:
-                            caseAcount += len(intersect) + 1
-                        elif len(intersect) == 0 and i[0] in v1:
-                            caseBcount += 1
-                        elif len(intersect) != 0 and i[0] not in v1:
-                            caseCcount += len(intersect)
-                        elif len(intersect) == 0 and i[0] not in v1:
-                            caseDcount += 1
                 elif orthoMode == "one2one" and contMethod == "genomeBased":
                     for i in geneList:
                         if i in orthologsList:

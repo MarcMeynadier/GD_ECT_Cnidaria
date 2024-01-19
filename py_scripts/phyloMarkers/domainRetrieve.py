@@ -30,7 +30,7 @@ def main(args):
   if os.path.exists("output/pfam/metazoanHmmOutput") == False:
     if os.path.exists("output/pfam/") == False:
       os.makedirs("output/pfam/")
-    subprocess.call(['hmmsearch','--cut_ga','-o',"output/pfam/metazoanHmmOutput",'--domtblout',"output/pfam/metazoanDtOut",
+    subprocess.call(['hmmsearch','--cut_ga','-o',"output/pfam/metazoanHmmOutput",'--domtblout',"output/pfam/metazoanDt",
                      "input/pfam/"+args.hmm_lib,"input/proteins/metazoanProteins.fasta"])
   print("Pfam annotation of metazoan sequences database has been processed.\n")
 
@@ -45,7 +45,7 @@ def main(args):
   geneList,protList = retrieveFastaSeq("input/proteins/metazoanProteins.fasta",targetGenes)
   if args.query != None:
     args.domain = args.query.split(".")[0]
-  dtOut = "metazoanDtOut"
+  dtOut = "metazoanDt"
   # This block is for getting only domains of transcripts, running MSA and building tree
   if not os.path.exists("output/"+args.output+"/MSA"):
     os.makedirs("output/"+args.output+"/MSA")  
@@ -76,6 +76,7 @@ def main(args):
   dictTaxo = getDictTaxoFile()
   familiesList = retrieveFamilies(args.output,args.query,dictTaxo,"Cnidaria")
   paralogsFamilies = getParalogs(familiesList) 
+  #print(paralogsFamilies)
   #eligibleFiles = scanpyEligibleSpecies()
   scExpr(args.output,dictTaxo,paralogsFamilies,args.query.split(".")[0])
 
@@ -129,9 +130,12 @@ def retrieveFamilies(output,query,dictTaxo,taxaLimit):
     
 def getParalogs(familiesList):
   paralogsFamilies = []
+  print(familiesList)
   for i in familiesList:
     familyGene = [j.split("|")[0] for j in i]
+    #print(familyGene)
     idx = np.where(pd.DataFrame(familyGene).duplicated(keep=False))[0].tolist()
+    #print(idx)
     paralogs = [i[j] for j in idx]
     if len(paralogs) != 0:
       paralogsFamilies.append(paralogs)
@@ -161,7 +165,7 @@ def getQueryDomains(query):
     queryName = queryName.replace("\n","") 
   f.close()
   listDomain = []
-  with open("output/pfam/metazoanDtOut","r") as f:
+  with open("output/pfam/metazoanDt","r") as f:
     l = f.readline()
     while l != "":
       if l[0] != "#":
@@ -170,8 +174,10 @@ def getQueryDomains(query):
           tempList = l.split(" ")
           strippedList = list(filter(None, tempList))
           cVal = float(strippedList[11])
+          print(cVal)
           if cVal < 10e-14:
             domain = strippedList[3]
+            print(domain)
             listDomain.append(domain)
       l = f.readline()
   f.close()
@@ -202,7 +208,7 @@ def retrieveGenesBlast(output,query):
 
 def retrieveGenesPfam(domainQuery):
   dicGeneDomain = {}
-  with open("output/pfam/metazoanDtOut","r") as f:
+  with open("output/pfam/metazoanDt","r") as f:
     l = f.readline()
     while l != "":
       if l[0] != "#":

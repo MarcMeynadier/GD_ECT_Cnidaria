@@ -278,7 +278,7 @@ def longestIsoformHydractinia(proteomPath,proteom):
     file.close() 
 
 
-def longestIsoformHydra(species):
+def longestIsoformGTF(species):
     path = "../../../../species/"+species+"/raw/"
     proteom = path+species+"Proteins.fasta"
     gtf = path+species+"Genes.gtf"
@@ -396,6 +396,6 @@ def longestIsoformAiptasia(proteomPath,proteom):
 
 def main():
     species = sys.argv[1]
-    longestIsoformHydra(species)
+    longestIsoformGTF(species)
 
 main()
