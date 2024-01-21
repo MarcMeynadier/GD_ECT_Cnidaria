@@ -1,0 +1,37 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+Hydractinia|LOC130653937  -            473 bZIP_1               PF00170.24    64     3e-16   54.5  11.2   1   1   1.5e-17   1.3e-15   52.5  11.2     1    57   382   438   382   458 0.94 -
+Nematostella|LOC116617291 -            171 bZIP_1               PF00170.24    64   9.9e-14   46.5  11.4   1   1   1.7e-15   1.5e-13   45.9  11.4     1    60    83   142    83   145 0.96 -
+Hydra|LOC100198653        -            254 bZIP_1               PF00170.24    64     4e-13   44.5  15.1   1   1   4.7e-15     4e-13   44.5  15.1     6    64    53   111    49   111 0.95 -
+Hydra|LOC100210912        -            297 bZIP_1               PF00170.24    64   2.4e-11   38.8  12.7   1   1   2.8e-13   2.4e-11   38.8  12.7     7    64    48   105    45   105 0.97 -
+Hydra|LOC100210912        -            297 bZIP_2               PF07716.18    54   7.4e-10   34.0  10.1   1   1   8.7e-12   7.4e-10   34.0  10.1     3    52    44    94    42    96 0.93 -
+Hydra|LOC100198653        -            254 bZIP_2               PF07716.18    54   7.5e-10   34.0  15.7   1   1   8.7e-12   7.5e-10   34.0  15.7     4    52    51   100    48   102 0.94 -
+Hydractinia|LOC130653937  -            473 bZIP_2               PF07716.18    54   1.2e-09   33.4  10.8   1   1   1.4e-11   1.2e-09   33.4  10.8     5    52   386   434   382   436 0.96 -
+Nematostella|LOC116617291 -            171 bZIP_2               PF07716.18    54     4e-07   25.3  12.3   1   1   8.7e-09   7.4e-07   24.4  12.3     3    54    86   137    83   142 0.89 -
+Hydra|LOC100210912        -            297 bZIP_Maf             PF03131.20    92   4.5e-07   25.6  10.0   1   1   4.5e-09   4.5e-07   25.6  10.0    32    92    48   108    35   108 0.94 -
+Hydra|LOC100198653        -            254 bZIP_Maf             PF03131.20    92   4.5e-07   25.6  11.0   1   1   4.5e-09   4.5e-07   25.6  11.0    30    91    52   113    41   114 0.91 -
+Hydra|LOC101235288   -            411 CUE                  PF02845.19    42   2.2e-10   35.3   0.0   1   1   8.6e-13   5.2e-10   34.1   0.0     5    41   333   369   330   370 0.93 -
+Hydra|LOC101235288   -            411 DM                   PF00751.21    47     6e-20   66.2   9.4   1   1     1e-22     6e-20   66.2   9.4     1    46    43    88    43    89 0.96 -
+myc1                 -            314 HLH                  PF00010.29    54   2.8e-14   48.1   3.6   1   1   4.6e-17   2.8e-14   48.1   3.6     2    54   226   277   225   277 0.98 -
+Hydractinia|LOC130654006 -            315 Homeodomain          PF00046.32    57   2.6e-19   64.1   0.6   1   1   3.2e-21   6.4e-19   62.8   0.6     1    57   253   309   253   309 0.99 -
+Hydra|LOC100210436       -            302 Homeodomain          PF00046.32    57   2.6e-19   64.1   0.6   1   1     3e-21     6e-19   62.9   0.6     1    57   240   296   240   296 0.99 -
+Clytia|LOC_001017        -            338 Homeodomain          PF00046.32    57   2.8e-19   64.0   0.6   1   1   3.6e-21   7.2e-19   62.7   0.6     1    57   275   331   275   331 0.99 -
+Hydra|LOC101236778       -            509 Hormone_recep        PF00104.33   213   7.2e-12   40.5   2.1   1   1   2.4e-14   7.2e-12   40.5   2.1     8   109   308   403   303   486 0.85 -
+Nematostella|LOC5511416 -            604 PAX                  PF00292.21   125   7.1e-68  221.5   0.2   1   1   7.9e-70   1.6e-67  220.4   0.2     2   125     6   129     5   129 0.99 -
+Xenia|LOC124451722      -            612 PAX                  PF00292.21   125   1.5e-67  220.4   0.3   1   1   1.4e-69   2.8e-67  219.6   0.3     2   125     6   129     5   129 0.99 -
+Clytia|LOC_000105       -            384 PAX                  PF00292.21   125   1.6e-66  217.1   0.3   1   1   1.3e-68   2.5e-66  216.5   0.3     3   125    23   145    21   145 0.99 -
+Hydra|LOC100210436       -            302 Pou                  PF00157.20    72   1.6e-32  106.5   0.0   1   1   4.9e-34   9.7e-32  104.0   0.0     3    72   149   221   147   221 0.93 -
+Hydractinia|LOC130654006 -            315 Pou                  PF00157.20    72   3.4e-32  105.5   0.0   1   1   1.2e-33   2.4e-31  102.8   0.0     3    72   162   234   160   234 0.93 -
+Clytia|LOC_001017        -            338 Pou                  PF00157.20    72   5.1e-32  104.9   0.0   1   1   1.4e-33   2.7e-31  102.6   0.0     3    72   184   256   182   256 0.93 -
+Hydra|LOC101236778   -            509 zf-C4                PF00105.21    70     6e-29   95.6  17.2   1   1   9.9e-32     6e-29   95.6  17.2     2    70    71   139    70   139 0.98 -
+#
+# Program:         hmmsearch
+# Version:         3.3.2 (Nov 2020)
+# Pipeline mode:   SEARCH
+# Query file:      input/pfam/Pfam-A.hmm
+# Target file:     results/final/RBH_many2many_genomeBased_cnidocytes/shared_orthologs.fasta
+# Option settings: hmmsearch -o results/final/RBH_many2many_genomeBased_cnidocytes/shared_orthologs_pfam --domtblout results/final/RBH_many2many_genomeBased_cnidocytes/shared_orthologs_dt_out --cut_ga input/pfam/Pfam-A.hmm results/final/RBH_many2many_genomeBased_cnidocytes/shared_orthologs.fasta 
+# Current dir:     /Users/mmeynadier/Documents/PhD/scripts/GD_ECT_Cnidaria/py_scripts/RBH_x_markers
+# Date:            Sat Jan 20 18:36:39 2024
+# [ok]
