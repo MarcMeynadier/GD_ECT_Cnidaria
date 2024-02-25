@@ -12,13 +12,6 @@ py_scripts/phyloMarkers/input/scanpy/
 *.html
 *.hmm
 *.hmm*
-*.png
-*.txt
-*.csv
-*.tree
-*.fasta
-*.pdf
-*.odg
 cache
 *.pytest_cache
 py_scripts/Equivalencer/results

@@ -1,0 +1,6 @@
+Hy,Xe,Of,s_cer,Nv,c_owc,Pd,Ct,Sp,m_vir,Ce,m_bre,Ep,m_lei,Cg,c_hem,Sk,s_ros,d_gig,Bf,Ta,Ac,Hv,Aq,sb,Hs,Xb,a_aur,Ad,Pc,La,ast,Dm,p_nak,Ci,Pa
+
+# 'Hy', 'Xe', 'Of', 's_cer', 'Nv', 'c_owc', 'Pd', 'Ct', 'Sp', 'm_vir', 'Ce', 'm_bre', 'Ep', 'm_lei', 'Cg', 'c_hem', 'Sk', 's_ros', 'd_gig', 'Bf', 'Ta', 'Ac', 'Hv', 'Aq', 'sb', 'Hs', 'Xb', 'a_aur', 'Ad', 'Pc', 'La', 'ast', 'Dm', 'p_nak', 'Ci', 'Pa'
+# Hydractinia sp,Xenia sp, Orbicella faveolata, Saccharomyces cerevisiae, Nematostella vectensis, Capsaspora owczarzaki, Pocillopora damicornis, Capitella teleta, Strongylocentrotus purpuratus, Morbakka virulenta, Caenorhabditis elegans, Monosiga brevicollis,
+# Exaiptasia pallida, Mnemiopsis leidyi, Crassostrea gigas, Clytia hemisphaerica, Saccoglossus kowalevskii, Salpingoeca rosetta, Dendronephthya gigantea, Branchiostoma floridae, Trichoplax adhaerens, Aplysia californica, Hydra vulgaris, Amphimedon queenslandica, Pleurobranchia bachei, 
+# Homo sapiens, Xenoturbella bocki, Aurelia aurita, Acropora digitifera, Priapulus caudatus, Lingula anatina, Astroides calycularis, Drosophila melanogaster, Praesagittifera naikaiensis, Ciona intestinalis, Phoronis australis

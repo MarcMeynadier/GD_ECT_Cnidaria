@@ -1,0 +1,5 @@
+2,10,11,14,15,16,18,22,25
+Hydractinia|LOC130653621,Hydractinia|LOC130613414,Hydractinia|LOC130613414,Hydractinia|LOC130622551,Hydractinia|LOC130612901,Hydractinia|LOC130644310,Hydractinia|LOC130662747
+Hydractinia
+polyp
+#A366E0

@@ -1,0 +1,5 @@
+12,21,24,25,28
+Clytia|LOC001566,Clytia|LOC029731,Clytia|LOC004785,Clytia|LOC030971,Clytia|LOC042410
+Clytia
+medusa
+#0080ff

@@ -1,0 +1,5 @@
+7,8
+Nematostella|LOC5519515,Nematostella|LOC5513584,Nematostella|LOC5507408,Nematostella|LOC5511471,Nematostella|LOC5510454,Nematostella|LOC116613705
+Nematostella
+polyp
+#A366E0

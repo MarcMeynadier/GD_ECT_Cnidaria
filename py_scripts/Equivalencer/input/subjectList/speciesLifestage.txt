@@ -1,0 +1,2 @@
+Clytia,Nematostella,Xenia,Hydractinia,Hydra
+medusa,polyp,planula
