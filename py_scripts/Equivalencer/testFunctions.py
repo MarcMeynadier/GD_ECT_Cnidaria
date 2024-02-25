@@ -400,9 +400,76 @@ matrix = np.log10(pAdjustedMatrix) * -1
 matrix = pd.DataFrame.transpose(pAdjustedMatrix)
 """
 
-with open('results/basic/RBH/one2one/Xenia_Hydractinia_orthologs.csv','rb') as f:
-    matrixList = pickle.load(f)
-with open('results/basic/RBH/one2one/Clytia_Hydra_orthologs.csv','rb') as f:
-    matrixList2 = pickle.load(f)
+def comparePPO(input1,input2):
+    fasta1PPO = []
+    fasta2PPO = []
+    with open("results/final/"+input1+"/transcription_factors.fasta","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] == ">":
+                gene = l.replace("\n","")
+                gene = gene.replace(">","") 
+                fasta1PPO.append(gene)
+            l = f.readline()
+    f.close()
+    with open("results/final/"+input2+"/transcription_factors.fasta","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] == ">":
+                gene = l.replace("\n","")
+                gene = gene.replace(">","") 
+                fasta2PPO.append(gene)
+            l = f.readline()
+    f.close() 
+    intersectPPO = list(set(fasta1PPO) & set(fasta2PPO))
+    unsharedPPO1 = list(set(fasta1PPO) - set(fasta2PPO))
+    unsharedPPO2 = list(set(fasta2PPO) - set(fasta1PPO))  
+    intersectFasta = getProteinSequences(intersectPPO,input1)
+    unsharedPPO1Fasta = getProteinSequences(unsharedPPO1,input1)
+    unsharedPPO2Fasta = getProteinSequences(unsharedPPO2,input2)
+    saveFasta(input1,input2,'intersect',intersectFasta)
+    saveFasta(input1,input2,'unshared1',unsharedPPO1Fasta)
+    saveFasta(input1,input2,'unshared2',unsharedPPO2Fasta) 
+    return 
 
-print(matrixList)
+
+def getProteinSequences(listPPO,fasta):
+    proteomPath = "results/final/"+fasta+"/transcription_factors.fasta"
+    with open(proteomPath,'r') as f:
+        line = f.readline()
+        prot=""
+        protList = []
+        geneList = []
+        while line != "":
+            if line[0] == ">":
+                gene = line.split('>')[1]
+                gene = gene.split('\n')[0]
+                if gene in listPPO:
+                    line = f.readline()
+                    geneList.append(gene)
+                    while line != "" and line[0] != ">":
+                        prot += line
+                        line = f.readline()
+                    protList.append(prot)
+                    prot = ""
+                else:
+                    line = f.readline()
+            else:
+                line = f.readline()
+    f.close()
+    geneProtDict = {}
+    for i in range(len(geneList)):
+        geneList[i] = ">" + geneList[i] +"\n"
+        geneProtDict[geneList[i]] = protList[i] 
+    return geneProtDict
+
+
+def saveFasta(input1,input2,name,geneProtDict):
+    with open("results/final/comparison/"+input1+"_"+input2+"_"+name+".fasta", 'a') as file:
+        for k,v in geneProtDict.items():
+            file.write(k)
+            file.write(v)
+    file.close()
+
+
+comparePPO("RBH_one2one_orthopairsBased_cnidocytes","RBH_one2one_orthopairsBased_neurons")

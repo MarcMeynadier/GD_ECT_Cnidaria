@@ -1,18 +1,12 @@
-import matplotlib.pyplot as plt
-
 # Standard library packages
 import os
+import subprocess
 
 # Import Numpy, Pandas and Seaborn
-import numpy as np
 import pandas as pd
-import seaborn as sns
 
 # Import biopython tools for running local BLASTX
 from Bio.Blast.Applications import NcbiblastpCommandline
-
-# Colour scale transformation
-from matplotlib.colors import LogNorm
 
 
 
@@ -32,12 +26,16 @@ def inputSpecies(sp1,sp2):
 
 def blastCommand(s1,s2,fwd_out,rev_out):
     blastp='/Users/mmeynadier/Documents/PhD/scripts/tools/ncbi-blast/bin/blastp'
+    #fwd_blastp = subprocess.call([blastp,'query',s1,'subject',s2,'out',fwd_out,'outfmt','6 qseqid sseqid pident qcovs qlen slen length bitscore evalue','max_target_seqs',1])
+    #rev_blastp = subprocess.call([blastp,'query',s2,'subject',s1,'out',rev_out,'outfmt','6 qseqid sseqid pident qcovs qlen slen length bitscore evalue','max_target_seqs',1])  
+
     fwd_blastp = NcbiblastpCommandline(cmd=blastp,query=s1, subject=s2, out=fwd_out,
                                     outfmt="6 qseqid sseqid pident qcovs qlen slen length bitscore evalue",
                                     max_target_seqs=1)
     rev_blastp = NcbiblastpCommandline(cmd=blastp,query=s2, subject=s1, out=rev_out,
                                     outfmt="6 qseqid sseqid pident qcovs qlen slen length bitscore evalue",
                                     max_target_seqs=1)
+
     # Inspect command-lines
     print("FORWARD: %s" % fwd_blastp)
     print("REVERSE: %s" % rev_blastp)
