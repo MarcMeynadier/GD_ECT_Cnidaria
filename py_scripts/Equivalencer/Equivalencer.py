@@ -16,6 +16,7 @@ Marc Meynadier
 #-----------------------------------------------------------------------------------------#
 
 import sys
+import time
 import argparse
 from os.path import exists
 import Equivalencer_stat as stat
@@ -39,6 +40,7 @@ def autoFullRun(args):
     -------
     None
     """
+    startTime = time.time() 
     contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
     basic.creatingOutputPath(geneSource,orthoMode,contMethod)
     if SPS == None:
@@ -98,8 +100,8 @@ def autoFullRun(args):
                             id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod)
                     else:
                         if not exists('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+"_orthologsId.csv"):  
-                            id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod)
-    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
+                            id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod) 
+    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime)
                     
 
 def main(args):
@@ -116,7 +118,7 @@ def main(args):
     Returns
     -------
     None
-    """ 
+    """
     contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
     spList = [] ; lifestageList = []
     if processType == "f":

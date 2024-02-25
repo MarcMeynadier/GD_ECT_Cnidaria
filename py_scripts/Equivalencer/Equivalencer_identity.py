@@ -4,10 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import re
-import sys
+import time
 import subprocess
+import sys
 from d3blocks import D3Blocks
+import scanpy as sc
 from acrylic import Color, RANDOM
+from os.path import exists
 
 # Module importation
 
@@ -311,7 +314,11 @@ def automaticIdentityStartingPoint(SPS):
         species = species.replace('\n','')
         lifestage = f.readline()
         lifestage = lifestage.replace('\n','')
-    return clusterList,geneList,species,lifestage
+        color = f.readline()
+        color = color.replace('\n','')
+        if len(color) == 0:
+            color = "#e60000"
+    return clusterList,geneList,species,lifestage,color
     
 
 def trimDuplicateOrthologs(sharedList):
@@ -437,6 +444,7 @@ def saveProteinsFasta(fastaFinalDict,outputName):
         print("\nPlease choose a code name for your results\n")
         outputName = input()
     outputPath = 'results/final/'+outputName
+    """
     lock = False
     while lock == False:
         if not os.path.exists(outputPath):
@@ -446,7 +454,8 @@ def saveProteinsFasta(fastaFinalDict,outputName):
             print("\nThere is already an output folder with this name, please choose another one\n")
             outputName = input()
             outputPath = 'results/final/'+outputName
-    with open(outputPath+'/shared_orthologs.fasta', 'w') as file:
+    """
+    with open(outputPath+'/shared_orthologs.fasta', 'a') as file:
         for k,v in fastaFinalDict.items():
             file.write(k)
             file.write(v)
@@ -525,7 +534,7 @@ def extractSharedOrthologs(matrixOrthologs,subjectAnnot,speciesList,lifestageLis
     return extractSharedOrthologsList,corresp
 
 
-def getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList):
+def getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,forbiddenClustersDict,outputName):
     """
     Description
     -----------
@@ -555,6 +564,7 @@ def getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processT
     newSpeciesList
         list, contains species that have been used for comparison.
     """
+    color = "#e60000"
     if processType == "m":
         clusterListIntegers = None
         verifiedCluster = None
@@ -582,7 +592,7 @@ def getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processT
             matrixOrthologs = pd.read_csv('results/id/'+newSp+'_'+newLifestage+'_'+speciesList[0]+'_'+lifestageList[0]+"_orthologsId.csv",index_col=0)
         newSpeciesList = [speciesList[0],newSp]
         newLifestageList = [lifestageList[0],newLifestage]
-        verifiedCluster = verifyClusterIdentity(statMatrix,clusterListIntegers,newSpeciesList,newLifestageList,geneList)
+        verifiedCluster = verifyClusterIdentity(statMatrix,clusterListIntegers,newSpeciesList,newLifestageList,geneList,forbiddenClustersDict,color,outputName)
     newSharedOrthologsSubject,corresp = extractSharedOrthologs(matrixOrthologs,newSubjectAnnot,newSpeciesList,newLifestageList,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
     return newSharedOrthologsSubject,newSpeciesList
 
@@ -615,7 +625,7 @@ def parseSharedOrthologsList(sharedOrthologsList):
     return sharedOrthologsList
 
 
-def continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList):
+def continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,outputName):
     """
     Description
     -----------
@@ -645,7 +655,7 @@ def continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sh
     listOfUsedSpecies
         list, list of species already used for comparison.  
     """
-    newOrthologsList,newSpeciesList = getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList)
+    newOrthologsList,newSpeciesList = getNewOrthologsMatrix(speciesList,lifestageList,clusterListIntegers,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,outputName)
     for i in newSpeciesList:
         if i not in listOfUsedSpecies:
             listOfUsedSpecies.append(i) 
@@ -663,7 +673,7 @@ def continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sh
         if res == "n":
             return sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies
         elif res == "y":
-            sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList) 
+            sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,outputName) 
 
 
 def trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName,subjectList,geneSource,orthoMode,contMethod):
@@ -727,7 +737,7 @@ def trimOrthologsMatricesManual(speciesList,lifestageList,processType,outputName
             #chordDiagram(subjectOrderChordDiagram,dfListSharedOrthologs)
             return
         elif res == "y":
-            sharedOrthologsList,dflistOfUsedSpecies,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList)
+            sharedOrthologsList,dflistOfUsedSpecies,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,outputName)
             sharedOrthologsList = trimDuplicateOrthologs(sharedOrthologsList)
             print(sharedOrthologsList)
             fastaFinalDict = manageProteinSequences(listOfUsedSpecies,sharedOrthologsList)
@@ -781,7 +791,25 @@ def extractClusterLowerPvalue(statMatrix,inputClusterList):
     return outputClusterList
 
 
-def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,geneList,orthoMode,geneSource):
+def forbiddenClusters():
+    forbiddenClustersDict = {}
+    with open("input/forbiddenClusters.txt","r") as f:
+        l = f.readline()
+        while l != "":
+            if l[0] != "#":
+                splitLine = l.split(":")
+                sp = splitLine[0]
+                lifestage = splitLine[1]
+                forbiddenClustersList = splitLine[2]
+                forbiddenClustersDict[sp+'_'+lifestage] = forbiddenClustersList
+                l = f.readline()
+            else:
+                l = f.readline()
+    f.close()
+    return forbiddenClustersDict
+
+
+def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,geneList,orthoMode,geneSource,forbiddenClustersDict,color,outputName):
     """
     Description
     -----------
@@ -808,6 +836,14 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
     """
     verifiedCluster = []
     outputClusterList = extractClusterLowerPvalue(statMatrix,inputClusterList)
+    if forbiddenClustersDict != None:
+        for k,v in forbiddenClustersDict.items():
+            sp = k.split("_")[0]
+            lifestage = k.split("_")[1]
+            forbiddenClusters = v.split(",")
+            forbiddenClusters = [int(element) for element in forbiddenClusters]
+            if (speciesList[1]==sp and lifestageList[1]==lifestage):
+                outputClusterList = list(set(outputClusterList) - set(forbiddenClusters)) 
     scanpyOutput = basic.getAllMarkers(speciesList[1],lifestageList[1]) 
     if speciesList[0] != speciesList[1]:
         targetGenes = []
@@ -825,7 +861,6 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
                     targetGenes = targetGenes + i[1]
                 elif len(intersectSp2) != 0:
                     targetGenes = targetGenes + i[0] 
-                #print(targetGenes)
         for i in outputClusterList:
             for k,v in scanpyOutput.items():
                 sharedGenesList = []
@@ -846,6 +881,7 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
                 if len(sharedGenesList) != 0:
                     verifiedCluster.append(k)
     verifiedCluster = list(set(verifiedCluster))
+    lightUpClusters(verifiedCluster,speciesList[1],lifestageList[1],color,outputName)
     return verifiedCluster
 
 
@@ -870,8 +906,12 @@ def trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SP
     ----------
     None
     """
-    subjectAnnot = None 
-    clusterList,geneList,startingSpecies,startingLifestage = automaticIdentityStartingPoint(SPS)
+    subjectAnnot = None
+    if  os.path.exists("input/forbiddenClusters.txt"):
+        forbiddenClustersDict = forbiddenClusters()
+    else:
+        forbiddenClustersDict = None 
+    clusterList,geneList,startingSpecies,startingLifestage,color = automaticIdentityStartingPoint(SPS)
     newSp,newLifestage = param.chooseNewSpeciesLifestage(subjectList)
     print(newSp)
     speciesList = [startingSpecies,newSp] ; lifestageList = [startingLifestage,newLifestage]
@@ -893,7 +933,7 @@ def trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SP
             except FileNotFoundError:
                 #print("\nOne of the subject does not exit")
                 return
-    verifiedCluster = verifyClusterIdentity(statMatrix,clusterList,speciesList,lifestageList,geneList,orthoMode,geneSource)
+    verifiedCluster = verifyClusterIdentity(statMatrix,clusterList,speciesList,lifestageList,geneList,orthoMode,geneSource,forbiddenClustersDict,color,outputName)
     clusterListIntegers = list(map(int, clusterList))
     sharedOrthologsList,corresp = extractSharedOrthologs(matrixOrthologs,subjectAnnot,speciesList,lifestageList,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
     correspList.append(corresp)
@@ -910,7 +950,7 @@ def trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SP
             saveProteinsFasta(fastaFinalDict,outputName)
             return
         elif res == "y":
-            sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList)
+            sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies = continueOrthologsComparison(speciesList,lifestageList,clusterListIntegers,sharedOrthologsList,dfListSharedOrthologs,listOfUsedSpecies,processType,geneList,startingSpecies,startingLifestage,contMethod,test,pValMethod,subjectList,outputName)
             sharedOrthologsList = finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList)
             fastaFinalDict = manageProteinSequences(listOfUsedSpecies,sharedOrthologsList)
             saveProteinsFasta(fastaFinalDict,outputName)
@@ -935,12 +975,16 @@ def finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList):
     sharedOrthologsListPosttrim
         list, contains all shared orthologs that are in common between every subjects. 
     """
+
     regexGeneList = [] 
     for i in dfListSharedOrthologs:
         for j in i:
-             regexGene = re.split(r"([0-9])",j)[0]
-             regexGeneList.append(regexGene)
-    regexGeneList = list(set(regexGeneList)) # Get list of identifiable species genes that were used
+            try:
+                regexGene = j.split('|')[1]
+            except IndexError:
+                regexGene = j
+            regexGeneList.append(regexGene)
+    regexGeneList = list(set(regexGeneList)) 
     regexOccurenceList = []
     for i in regexGeneList:
         countOccurence = 0
@@ -956,7 +1000,10 @@ def finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList):
     indexListRemoval = []
     c = 0
     for i in sharedOrthologsList:
-        regexTag = re.split(r"([0-9])",i)[0]
+        try:
+            regexTag = i.split('|')[1]
+        except IndexError:
+            regexTag = i 
         indx = [i for i, s in enumerate(regexGeneList) if regexTag in s][0]
         comparisonNumber = regexOccurenceList[indx]
         geneOccurence = sharedOrthologsList.count(i)
@@ -969,7 +1016,7 @@ def finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList):
     return sharedOrthologsListPosttrim
 
 
-def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode):
+def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime):
     """
     Description
     -----------
@@ -991,7 +1038,11 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
     None
     """
     subjectAnnot = None
-    startingClusterList,startingGeneList,startingSpecies,startingLifestage = automaticIdentityStartingPoint(SPS)
+    if  os.path.exists("input/forbiddenClusters.txt"):
+        forbiddenClustersDict = forbiddenClusters()
+    else:
+        forbiddenClustersDict = None
+    startingClusterList,startingGeneList,startingSpecies,startingLifestage,color = automaticIdentityStartingPoint(SPS)
     speciesList,lifestageList = param.automaticSpeciesLifestage(subjectList)
     dfListSharedOrthologs = []
     sharedOrthologsListConcat = []
@@ -1036,7 +1087,7 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
                         print("\nSubject "+species+" "+lifestage+" does not exit")
                         pass 
                 if len(statMatrix) != 0:
-                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource)
+                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource,forbiddenClustersDict,color,outputName)
                     clusterListIntegers = list(map(int,startingClusterList))
                     sharedOrthologsList,corresp = extractSharedOrthologs(matrixOrthologs,subjectAnnot,comparedSpecies,comparedLifestage,processType,clusterListIntegers,verifiedCluster,startingSpecies,startingLifestage)
                     correspList.append(corresp)
@@ -1109,12 +1160,12 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
                         #print("\nSubject "+species+" "+lifestage+" does not exit")
                         pass
                 if len(statMatrix) != 0: 
-                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource)
+                    verifiedCluster = verifyClusterIdentity(statMatrix,startingClusterList,comparedSpecies,comparedLifestage,startingGeneList,orthoMode,geneSource,forbiddenClustersDict,color,outputName)
                     nbrOrthologs = getOrthologsMetrics(dfListSharedOrthologs,species,lifestage,verifiedCluster)
-                    nbrOrthologsList.append(nbrOrthologs)
+                    nbrOrthologsList.append(nbrOrthologs) 
     sharedOrthologsListConcat = finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsListConcat) 
-    print("\nList of pan-cnidarian orthologs for targeted cell type :\n")
-    print(sharedOrthologsListConcat)
+    #print("\nList of pan-cnidarian orthologs for targeted cell type :\n")
+    #print(sharedOrthologsListConcat)
     print("\nLength of genes list :\n")
     print(len(sharedOrthologsListConcat))
     fastaFinalDict = manageProteinSequences(speciesList,sharedOrthologsListConcat)
@@ -1122,13 +1173,15 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
     subjectNameBarplot2 = subjectNameBarplot.copy()
     horizontalBarplotGenes(nbrGenesList,subjectNameBarplot,outputName)
     horizontalBarplotOrthologs(nbrOrthologsList,subjectNameBarplot2,sharedOrthologsListConcat,outputName)
-    logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SPS,outputName,dfListSharedOrthologs,subjectOrderChordDiagram)
     pfamAnnotPCO(outputName)
     genesPfamDict = linkPfamGenes(outputName)
     pfamCodeList = retrieveTranscriptionFactorsPfam()
     sequencesTF(outputName,genesPfamDict,pfamCodeList)
     getPfamAnnotTF(outputName)
     chordDiagram(subjectOrderChordDiagram,dfListSharedOrthologs,outputName)
+    endTime = time.time()
+    runTime = endTime - startTime
+    logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SPS,outputName,dfListSharedOrthologs,subjectOrderChordDiagram,runTime) 
     return 
 
 
@@ -1287,10 +1340,11 @@ def chordDiagram(subjectOrderChordDiagram,dfListSharedOrthologs,outputName):
     d3.show()
 
 
-def logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SPS,outputName,dfListSharedOrthologs,subjectOrderChordDiagram):
+def logOutput(correspList,processType,contMethod,test,pValMethod,iterationNbr,SPS,outputName,dfListSharedOrthologs,subjectOrderChordDiagram,runTime):
     with open("results/final/"+outputName+"/log_results.txt","w") as f:
         f.write("Parameters :\n") 
         f.write("Processing : "+processType+" | Contingency matrix method : "+contMethod+" | Statistical test : "+test+" | Combining p-value method : "+pValMethod+" | Starting point subject : "+SPS+" | Number of iteration : "+str(iterationNbr)+"\n")
+        f.write("Runtime : "+str(runTime)+"\n")
         for i in correspList:
             if i != None:
                 f.write(i)
@@ -1334,16 +1388,21 @@ def pfamAnnotPCO(outputName):
 
 def linkPfamGenes(outputName):
     genesPfamDict = {}
-    with open("results/final/"+outputName+"/shared_orthologs_dt_out","r") as f:
-        l = f.readline()
-        while l != "":
-            if l[0] != "#":
-                tempList = l.split(" ")
-                strippedList = list(filter(None, tempList))
-                gene = strippedList[0]
-                pfam = strippedList[4].split('.')[0]
-                genesPfamDict[gene] = pfam
+    try:
+        with open("results/final/"+outputName+"/shared_orthologs_dt_out","r") as f:
             l = f.readline()
+            while l != "":
+                if l[0] != "#":
+                    tempList = l.split(" ")
+                    strippedList = list(filter(None, tempList))
+                    gene = strippedList[0]
+                    pfam = strippedList[4].split('.')[0]
+                    genesPfamDict[gene] = pfam
+                l = f.readline()
+    except FileNotFoundError:
+        print("It seemed that the shared_orthologs_dt_out file is absent.")
+        print("Please check the shared_orthologs.fasta file. If it is empty, no PPO were retrieved.")
+        sys.exit(0)
     f.close()
     return genesPfamDict
 
@@ -1412,4 +1471,28 @@ def getPfamAnnotTF(outputName):
     return
 
 
-
+def lightUpClusters(clusterList,sp,lifestage,color,outputName):
+    if not exists('results/final/'+outputName+'/UMAP'):
+        os.makedirs('results/final/'+outputName+'/UMAP')    
+    try: 
+        umap = sc.read_h5ad('input/Scanpy/'+sp+'_'+lifestage+'.h5ad')
+    except:
+        print("h5ad file of "+sp+" "+lifestage+" was not retrieved.\n")
+        return
+    savePath = 'results/final/'+outputName+'/UMAP/'+sp+'_'+lifestage+'.pdf'
+    if not exists(savePath):
+        listLeiden = umap.obs['leiden'].cat.categories
+        listLeiden = listLeiden.tolist()
+        dictPalette = {}
+        for i in range(len(listLeiden)):
+            if i not in clusterList:
+                dictPalette[str(i)] = "#E2E2E2"
+            else:
+                dictPalette[str(i)] = color
+        with plt.rc_context():
+            sc.pl.umap(umap,title=sp+' '+lifestage+'\n'+outputName, color=['leiden'], legend_loc= 'on data', legend_fontsize=6, legend_fontoutline=3, palette=dictPalette, frameon=False,show=False)
+            plt.savefig(savePath, bbox_inches="tight")
+            plt.close()
+    return
+    
+    

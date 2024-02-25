@@ -33,9 +33,10 @@ def getAllMarkers(sp,lifestage):
     markersDictSp = {}
     pathMarkersSp = 'input/Scanpy/'+sp+'_'+lifestage+'_markers_1000g.csv'
     dfSp = pd.read_csv(pathMarkersSp,sep='\t') 
-    markersSp = dfSp.groupby('clus')['markerGene'].apply(list).values
-    for j in range(len(markersSp)):
-        markersDictSp[j] = markersSp[j]
+    dfSp['markerGene'] = sp + '|' + dfSp['markerGene'].astype(str)
+    markersSp = dfSp.groupby('clus')['markerGene'].apply(list).values 
+    for i in range(len(markersSp)):
+        markersDictSp[i] = markersSp[i]
     return markersDictSp
 
 
@@ -59,12 +60,10 @@ def getRBHdata(spList,orthoMode):
     outputList = [] 
     sp1 = spList[0] ; sp2 = spList[1]
     forward = pd.read_csv('input/RBH/'+sp1+'_'+sp2+'.txt',sep="\t")
-    forward = forward.drop(forward[forward.evalue > 10e-14].index)
-    forward = forward.drop(forward[forward.evalue == 0].index)
+    forward = forward.drop(forward[forward.evalue > 10e-7].index)
     backward = pd.read_csv('input/RBH/'+sp2+'_'+sp1+'.txt',sep="\t") 
     backward[['qseqid','sseqid']] = backward[['sseqid','qseqid']]
-    backward = backward.drop(backward[backward.evalue > 10e-14].index)
-    backward = backward.drop(backward[backward.evalue == 0].index) 
+    backward = backward.drop(backward[backward.evalue > 10e-7].index)
     forwardListTuple = [] ; backwardListTuple = []
     forwardListSimple = [] ; backwardListSimple = [] 
     if orthoMode == "one2one":
@@ -73,43 +72,7 @@ def getRBHdata(spList,orthoMode):
         RBHgenes2 = RBHdf.iloc[:,1].tolist() 
         outputList = list(tuple(zip(RBHgenes1,RBHgenes2)))
         with open('results/basic/RBH/one2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
-            pickle.dump(outputList, f)
-    elif orthoMode == "one2many":
-        for index, row in forward.iterrows():
-            tupleOrth = (row['qseqid'],row['sseqid'])
-            forwardListTuple.append(tupleOrth) 
-            forwardListSimple.append(row['sseqid']) 
-        for i in forwardListSimple:
-            orthList = []
-            for j in forwardListTuple:
-                if i in j:
-                    if i == j[0]:
-                        orthList.append(j[1])
-                    elif i == j[1]:
-                        orthList.append(j[0])
-            if len(orthList) != 0:
-                orthTuple = (i,orthList)
-                outputList.append(orthTuple)
-        with open('results/basic/RBH/one2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
             pickle.dump(outputList,f)
-    elif orthoMode == "many2one":
-        for index, row in backward.iterrows():
-            tupleOrth = (row['qseqid'],row['sseqid'])
-            backwardListTuple.append(tupleOrth) 
-            backwardListSimple.append(row['qseqid']) 
-        for i in backwardListSimple:
-            orthList = []
-            for j in backwardListTuple:
-                if i in j:
-                    if i == j[0]:
-                        orthList.append(j[1])
-                    elif i == j[1]:
-                        orthList.append(j[0])
-            if len(orthList) != 0:
-                orthTuple = (i,orthList)
-                outputList.append(orthTuple)
-        with open('results/basic/RBH/many2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
-            pickle.dump(outputList,f)  
     elif orthoMode == "many2many":
         for index, row in forward.iterrows():
             tupleOrth = (row['qseqid'],row['sseqid'])
@@ -158,6 +121,7 @@ def getRBHdata(spList,orthoMode):
                     many2manyTuple = (orthSp1,orthSp2)
                     outputList.append(many2manyTuple)          
         outputList = unique(outputList)
+
         with open('results/basic/RBH/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
             pickle.dump(outputList,f)
     return outputList
@@ -173,7 +137,6 @@ def getOrthofinderData(spList,orthoMode):
             pathFile = pathFile.replace(".",i)
             pathFile += "/."
             fileNames = os.listdir(pathFile) 
-    
     if orthoMode == "many2many":
         for i in fileNames:
             if spList[1]+"Proteins" in i:
@@ -190,8 +153,8 @@ def getOrthofinderData(spList,orthoMode):
                     else:
                         sp2 = sp2.split()
                     outputList.append((sp1,sp2))
-                    with open('results/basic/orthofinder/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
-                        pickle.dump(outputList,f)
+        with open('results/basic/orthofinder/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
+            pickle.dump(outputList,f)
     elif orthoMode == "one2one":
         print("\nOrthomode one2one is not supported with Orthofinder data.\n")
         exit()
@@ -352,7 +315,7 @@ def searchCorrespondingOrth(RBHgenesTupleList,gene,orthoMode):
                 return correspondingOrth,i[1]
             
 
-def genesCounting(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList):
+def genesCounting(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList): 
     spOrderFlag = blankOrderTest(RBHtupleList,markersDictSpList,orthoMode,contMethod,species,spList)
     sp1MarkersDict = markersDictSpList[0]
     sp2MarkersDict = markersDictSpList[1]
