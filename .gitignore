@@ -19,7 +19,6 @@ py_scripts/phyloMarkers/output
 *.odg
 cache
 *.pytest_cache
-py_scripts/Equivalencer/input
 py_scripts/Equivalencer/results
 py_scripts/ScanpyProcessing/v3_medusaGENERATION_ALLsamples_MITO_HARMONY.ipynb
 
