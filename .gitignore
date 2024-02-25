@@ -3,7 +3,9 @@
 .DS_Store
 pycache
 __pycache__
+py_scripts/Equivalencer/input/Scanpy/
 py_scripts/phyloMarkers/output
+py_scripts/phyloMarkers/input/scanpy/
 *.db
 .RData
 .Rhistory
