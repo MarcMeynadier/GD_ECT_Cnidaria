@@ -71,6 +71,8 @@ def getRBHdata(spList,orthoMode):
         RBHgenes1 = RBHdf.iloc[:,0].tolist() 
         RBHgenes2 = RBHdf.iloc[:,1].tolist() 
         outputList = list(tuple(zip(RBHgenes1,RBHgenes2)))
+        if not os.path.exists('results/basic/RBH/one2one/'):
+            os.makedirs('results/basic/RBH/one2one/', exist_ok=True) 
         with open('results/basic/RBH/one2one/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
             pickle.dump(outputList,f)
     elif orthoMode == "many2many":
@@ -121,7 +123,8 @@ def getRBHdata(spList,orthoMode):
                     many2manyTuple = (orthSp1,orthSp2)
                     outputList.append(many2manyTuple)          
         outputList = unique(outputList)
-
+        if not os.path.exists('results/basic/RBH/many2many/'):
+            os.makedirs('results/basic/RBH/many2many/', exist_ok=True)
         with open('results/basic/RBH/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
             pickle.dump(outputList,f)
     return outputList
@@ -153,6 +156,8 @@ def getOrthofinderData(spList,orthoMode):
                     else:
                         sp2 = sp2.split()
                     outputList.append((sp1,sp2))
+        if not os.path.exists('results/basic/orthofinder/many2many/'):
+            os.makedirs('results/basic/orthofinder/many2many/', exist_ok=True)
         with open('results/basic/orthofinder/many2many/'+spList[0]+'_'+spList[1]+'_orthologs.csv', "wb") as f:   
             pickle.dump(outputList,f)
     elif orthoMode == "one2one":
