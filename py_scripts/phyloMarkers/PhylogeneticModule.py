@@ -10,17 +10,16 @@ import regex as re
 from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
-
+from ete3 import Tree
 
 def processPhylogenetic(output,domainOut,msaInput,alignment):
   tree = treeBuild(output,domainOut,msaInput,alignment) # tree in Newick
   treeGenerator("output/"+output+"/"+alignment+"/"+domainOut +"/MSA","Tree") # tree in pdf
-  if os.path.exists("metazoanTaxo.txt") == False:
+  if os.path.exists("output/metazoanTaxo.txt") == False:
     dictMetazoan = parseMetazoanList()
     createTaxoFile(dictMetazoan)
   dictTaxo = getDictTaxoFile()
   familiesList = retrieveFamilies(tree,dictTaxo,"Cnidaria")
-  #paralogsFamilies = getParalogs(familiesList)
   print(familiesList)
   return dictTaxo,familiesList
 
@@ -158,49 +157,80 @@ def getDictTaxoFile():
 
 
 def retrieveFamilies(tree,dictTaxo,taxaLimit):
-  with open(tree) as f:
-    tree = f.readline()
-  f.close()
-  nodesList = tree.split(',')
-  spList = []
-  for i in nodesList:
-    sp = i.split("|")[0]
-    if "(" in sp:
-      sp = sp.replace("(","")
-    if sp not in spList:
-      spList.append(sp)
-  familiesList = []
-  family = []
-  trapFlag = False
-  for i in nodesList:
-    gene = i.replace('(',"")
-    gene = gene.split(":")[0]
-    try:
-      lineage = dictTaxo[gene.split("|")[0]]
-    except KeyError:
-      pass
-    if taxaLimit in lineage:
-      trapFlag = True
-    else:
-      trapFlag = False
-      if len(family) != 0:
-        familiesList.append(family)
-        family = []
-    if trapFlag == True:
-      family.append(gene)
-  return familiesList
+    taxoCode = set()
+    for code, categories in dictTaxo.items():
+        if taxaLimit in categories:
+            taxoCode.add(code)
+    t = Tree(tree)
+    paralogsNestList = []
+    paralogsList = []
+    for node in t.traverse("postorder"):
+        gene = node.name
+        if any(not c.isspace() for c in gene):
+            gene = gene.split('|')[0]
+            if gene in taxoCode:
+                paralogsList.append(node.name)
+            else:
+                if len(paralogsList) != 0:
+                    paralogsNestList.append(paralogsList) 
+                paralogsList = []
+    paralogsNestList.append(paralogsList)
+    iterativeFlag1 = True
+    iterativeFlag2 = True
+    banLeafList = []
+    banCount = 0
+    while iterativeFlag1 == True:
+        paralogsNestList,iterativeFlag1,banLeafList,banCount = testMonophyly(tree,paralogsNestList,taxoCode,banLeafList,banCount)
+    while iterativeFlag2 == True:
+      paralogsNestList,iterativeFlag2 = fusionner_listes_avec_communs(paralogsNestList)
+    paralogsNestList = [subList for subList in paralogsNestList if subList]
+    return paralogsNestList
 
 
+def testMonophyly(tree,paralogsNestList,taxoCode,banLeafList,banCount):
+    t = Tree(tree)
+    iterativeFLag1 = False
+    for i in paralogsNestList:
+          listIndex = paralogsNestList.index(i)
+          for j in range(len(i) - 1):
+              for k in range(j + 1, len(i)):
+                  commonAncestor = t.get_common_ancestor(i[j],i[k])
+                  caLeaves = commonAncestor.get_leaves()
+                  caLeaves = [str(element) for element in caLeaves]
+                  caLeavesBanVerif = [element.strip('\n-') for element in caLeaves] 
+                  caLeaves = [element.split('|')[0].strip('\n-') for element in caLeaves]
+                  if set(caLeaves) - taxoCode:  
+                    intersection = set(banLeafList) & set(caLeavesBanVerif)
+                    if len(intersection) == 0:
+                      iterativeFLag1 = True  
+                      cutIndex = i.index(i[k-1])
+                      cutList1 = i[:cutIndex+1]
+                      cutList2 = i[cutIndex+1:]                    
+                      if cutList1 in paralogsNestList and cutList2 in paralogsNestList:
+                        banCount += 1 
+                        if banCount > len(i):
+                          ban = [item for item in caLeavesBanVerif if item.split('|')[0] not in taxoCode]
+                          banLeafList = list(set(banLeafList) | set(ban))
+                        break
+                      else:
+                        banCount = 0
+                        paralogsNestList[listIndex] = cutList1 
+                        paralogsNestList.insert(listIndex + 1,cutList2) 
+                        break
+    return paralogsNestList,iterativeFLag1,banLeafList,banCount
 
-def getParalogs(familiesList):
-  paralogsFamilies = []
-  #print(familiesList)
-  for i in familiesList:
-    familyGene = [j.split("|")[0] for j in i]
-    #print(familyGene)
-    idx = np.where(pd.DataFrame(familyGene).duplicated(keep=False))[0].tolist()
-    #print(idx)
-    paralogs = [i[j] for j in idx]
-    if len(paralogs) != 0:
-      paralogsFamilies.append(paralogs)
-  return paralogsFamilies
+
+def fusionner_listes_avec_communs(liste):
+    i = 0
+    iterativeFlag2 = False
+    while i < len(liste):
+        j = i + 1
+        while j < len(liste):
+            if set(liste[i]) & set(liste[j]):
+                iterativeFlag2 = True
+                liste[i] = list(set(liste[i]) | set(liste[j]))  
+                del liste[j]
+                j -= 1  
+            j += 1
+        i += 1
+    return liste,iterativeFlag2

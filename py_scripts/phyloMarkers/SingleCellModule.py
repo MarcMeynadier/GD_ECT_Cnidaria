@@ -10,6 +10,7 @@ import scanpy as sc
 from matplotlib import pyplot as plt
 import PyPDF2
 import glob
+from ete3 import Tree
 
 from PhylogeneticModule import treeGenerator
 
@@ -28,30 +29,53 @@ def scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment):
     pathSc = "input/scanpy/"
     countSubtrees = 0
     for i in paralogsFamilies:
-        if os.path.exists("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)) == False:
-             os.makedirs("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)) 
-        pathOutput = "output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)
+        
         tree = "output/"+output+"/"+alignment+"/"+domainOut+"/MSA/Tree.tree"
-        paralogsList(pathOutput,i)
-        createSubtree(tree,i,pathOutput)
-        treeGenerator(pathOutput,"subTree")
-        for j in i:
-            abbrv = j.split("|")[0]
-            gene = j.split("|")[1]
+        if len(i) > 1:
+            if os.path.exists("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)) == False:
+                os.makedirs("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)) 
+                pathOutput = "output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)
+            createSubtree(tree,i,pathOutput)
+            treeGenerator(pathOutput,"subTree")
+            paralogsList(pathOutput,i)
+            for j in i:
+                abbrv = j.split("|")[0]
+                gene = j.split("|")[1]
+                species = dictTaxo[abbrv][-1]
+                for k in lfList:
+                    if os.path.exists(pathSc+species+"_"+k+".h5ad"):
+                        scanpyFile = sc.read_h5ad(pathSc+species+"_"+k+".h5ad")
+                        with plt.rc_context():  
+                            try:
+                                sc.pl.umap(scanpyFile,color=gene,title=j+" "+k,show=False)
+                                plt.savefig("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)+"/"+j+"_"+k+"_UMAP.pdf", bbox_inches="tight")
+                                plt.close()
+                            except KeyError:
+                                print(gene+" expression was not retrieved\n")
+                                pass
+            stitchUMAPs(pathOutput)
+            countSubtrees += 1
+        else:
+            isolatedPath = "output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/isolatedParalogs" 
+            if os.path.exists(isolatedPath) == False:
+                os.makedirs(isolatedPath)
+            paralogsList(isolatedPath,i)
+            abbrv = i[0].split("|")[0]
+            gene = i[0].split("|")[1]
             species = dictTaxo[abbrv][-1]
-            for k in lfList:
-                if os.path.exists(pathSc+species+"_"+k+".h5ad"):
-                    scanpyFile = sc.read_h5ad(pathSc+species+"_"+k+".h5ad")
+            for j in lfList:
+                if os.path.exists(pathSc+species+"_"+j+".h5ad"):
+                    scanpyFile = sc.read_h5ad(pathSc+species+"_"+j+".h5ad")
                     with plt.rc_context():  
                         try:
-                            sc.pl.umap(scanpyFile,color=gene,title=j+" "+k,show=False)
-                            plt.savefig("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)+"/"+j+"_"+k+"_UMAP.pdf", bbox_inches="tight")
+                            sc.pl.umap(scanpyFile,color=gene,title=i[0]+" "+j,show=False)
+                            plt.savefig(isolatedPath+"/"+i[0]+"_"+j+"_UMAP.pdf", bbox_inches="tight")
                             plt.close()
                         except KeyError:
                             print(gene+" expression was not retrieved\n")
                             pass
-        stitchUMAPs(pathOutput)
-        countSubtrees += 1
+    if os.path.exists("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/isolatedParalogs/paralogs.txt"):  
+        trimLastComma("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/isolatedParalogs/paralogs.txt")    
     return
 
 
@@ -69,45 +93,29 @@ def stitchUMAPs(path):
     else:
         return 
 
-def createSubtree(tree,paralogsFamily,pathOutput):
+
+def createSubtree(tree,paralogsList,output):
     with open(tree,"r") as f:
         tree = f.readline()
     f.close()
-    treeBeginning = paralogsFamily[0]
-    treeEnding = paralogsFamily[-1]
-    treeEnding = treeEnding.replace("|", "\\|")
-    subTree = ""
-    regex_pattern = r'\((.*?)' + re.escape(treeBeginning)
-    subTree = re.split(regex_pattern, tree)
-    if len(subTree) > 1:
-        subTree =  subTree[-1].strip()
-    match = re.search(treeEnding, subTree)
-    if match:
-        substring_after_regex = subTree[match.end():]
-        first_comma_position = substring_after_regex.find(',')
-        first_semicolon_position = substring_after_regex.find(';')
-        first_separator_position = min(first_comma_position, first_semicolon_position)
-        if first_separator_position != -1:
-            text_before_separator = subTree[:match.end() + first_separator_position]
-            subTree = text_before_separator.strip()
-    subTree = treeBeginning + subTree
-    subTree = subTree + ')'
-    subTreeCount1 = subTree.count('(')
-    subTreeCount2 = subTree.count(')')
-    diff = max(subTreeCount2,subTreeCount1) - min(subTreeCount2,subTreeCount1)
-    if subTreeCount1 > subTreeCount2:
-        subTree = subTree + ')' * diff
-    else:
-        subTree = '(' * diff + subTree
-    subTree = subTree + ';'
-    with open(pathOutput+"/subTree.tree","w") as f:
-        f.write(subTree)
-    f.close()
+    t = Tree(tree)      
+    ca = t.get_common_ancestor(paralogsList[0],paralogsList[-1])
+    ca.write(format=1, outfile=output+"/subTree.tree")
     return
 
 
 def paralogsList(path,paralogsList):
-    with open(path+"/paralogs.txt","w") as f:
+    with open(path+"/paralogs.txt","a") as f:
         f.write(','.join(paralogsList))
+        if len(paralogsList) == 1:
+            f.write(',')
     f.close()
     return
+
+def trimLastComma(path):
+    with open(path, "r") as f:
+        content = f.read()
+    f.close()
+    with open(path, "w") as f:
+        f.write(content[:-1])
+    f.close()

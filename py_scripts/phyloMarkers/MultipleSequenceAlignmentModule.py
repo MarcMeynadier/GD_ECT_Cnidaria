@@ -322,18 +322,18 @@ def do_esl_alimask(output,domainOut,hmm_name,stk_fn,alignment):
 
 
 def do_esl_alimanip(output,domainOut,hmm_name,alimask_fn,alignment):
-   alimanip_out_fn = "output/"+output+"/"+alignment+"/"+domainOut +"/MSA/"+hmm_name + '.alimanip'
-
-   subprocess.call(['esl-alimanip','-o',alimanip_out_fn,
+  alimanip_out_fn = "output/"+output+"/"+alignment+"/"+domainOut +"/MSA/"+hmm_name + '.alimanip'
+  print("YOOOOO")
+  subprocess.call(['esl-alimanip','-o',alimanip_out_fn,
                     '--minpp','0.3',alimask_fn])
 
    # need to do this sequentially - first remove bad residues to gap
    # then filter out sequences that are now too short
    # seem to be able to write to same name as input
 
-   subprocess.call(['esl-alimanip','-o',alimanip_out_fn,
-                    '--lnfract','0.7',alimanip_out_fn])
-   return alimanip_out_fn
+  subprocess.call(['esl-alimanip','-o',alimanip_out_fn,
+                  '--lnfract','0.7',alimanip_out_fn])
+  return alimanip_out_fn
 
 
 def convert_to_mfa(output,domainOut,hmm_name,alimanip_fn,alignment):
