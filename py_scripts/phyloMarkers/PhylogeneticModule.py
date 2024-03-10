@@ -26,8 +26,8 @@ def processPhylogenetic(output,domainOut,msaInput,alignment):
 
 def treeBuild(output,domainOut,filtered_fn,alignment):
   output_file = "output/"+output+"/"+alignment+"/"+domainOut +"/MSA/Tree.tree" 
-  fasttreePath = "/Users/mmeynadier/Documents/PhD/scripts/tools/FastTree/FastTree"
-  cmd = fasttreePath + " " +filtered_fn+" > "+output_file 
+  #fasttreePath = "/Users/mmeynadier/Documents/PhD/scripts/tools/FastTree/FastTree"
+  cmd = "FastTree " +filtered_fn+" > "+output_file 
   os.system(cmd)
   return output_file
 
@@ -41,7 +41,7 @@ def treeGenerator(path,fileName):
         dim = 300
     elif countGene > 30:
         dim = 300 + 10 * countGene
-    figtreePath = "java -jar /Users/mmeynadier/Documents/PhD/scripts/tools/FigTree_v1.4.4/lib/figtree.jar"
+    figtreePath = "java -jar /mnt/c/docRoot/coding//tools/FigTree_v1.4.4/lib/figtree.jar"
     cmd = figtreePath + " -width " + str(dim) + " -height " + str(dim) + " -graphic PDF "+ path + "/" + fileName+ ".tree " + path + "/" + fileName +".pdf"
     os.system(cmd)
 

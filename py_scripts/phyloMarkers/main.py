@@ -10,7 +10,7 @@ from SingleCellModule import *
 ###########################################
 
 def main(args):
-  alignment = args.alignment ; output = args.output ; query = args.query ; mode = args.mode ; domains = args.domain
+  alignment = args.alignment ; output = args.output ; query = args.query ; mode = args.mode ; domains = args.domain ; db = args.db
   if query != None and domains != None:
     print("It is mandatory to choose between a FASTA input and a list of proteic domains.")
   elif query != None:
@@ -18,7 +18,7 @@ def main(args):
     for query in queriesList:
       hmm_list = getQueryDomains(query)
       if alignment == "HMM":
-        domainOut,msaInput = processHMM(hmm_list,output,alignment,mode)
+        domainOut,msaInput = processHMM(hmm_list,output,alignment,mode,db)
       elif alignment == "MAFFT":
         domainOut,msaInput = processMAFFT(hmm_list,alignment,output)  
       else:
@@ -47,6 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('-q','--query',action='store',dest='query',help='Protein query name')
     parser.add_argument('-d','--domain',action='store',dest='domain',help='Domain name')  
     parser.add_argument('-m','--mode',action='store',dest='mode',help='Mode name')   
+    parser.add_argument('-db','--database',action='store',dest='db',help='Path to Pfam database directory')
     args = parser.parse_args()
 
     print(args)

@@ -41,7 +41,7 @@ def autoFullRun(args):
     None
     """
     startTime = time.time() 
-    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
+    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource ; db = args.db
     basic.creatingOutputPath(geneSource,orthoMode,contMethod)
     if SPS == None:
         print("\nStarting point subject is mandatory for automatic processing")
@@ -101,7 +101,7 @@ def autoFullRun(args):
                     else:
                         if not exists('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+sp1+'_'+lf1+'_'+sp2+'_'+lf2+"_orthologsId.csv"):  
                             id.getOrthologsPairs(RBHdfTupleList,[markersSubject1,markersSubject2],[sp1,sp2],[lf1,lf2],geneSource,orthoMode,contMethod) 
-    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime)
+    id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime,db)
                     
 
 def main(args):
@@ -119,7 +119,7 @@ def main(args):
     -------
     None
     """
-    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource
+    contMethod = args.contMethod ; test = args.test ; pValMethod = args.pValMethod ; processType = args.processType ; iterationNbr = args.iterationNbr ; SPS = args.SPS ; outputName = args.outputName ; subjectList = args.subjectList ; orthoMode = args.orthoMode ; geneSource = args.geneSource ; db = args.db
     spList = [] ; lifestageList = []
     if processType == "f":
         autoFullRun(args)
@@ -166,13 +166,13 @@ def main(args):
                 
                 markersSubjectList.append(markersSubject1)
                 markersSubjectList.append(markersSubject2)
-                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
+                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,db)
             elif processType == "a" or processType=="sa":
                 if SPS == None:
                     print("\nStarting point subject is mandatory for automatic processing")
                     SPS = param.selectStartingPointSubject()
                 RBHdfTupleList = None
-                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
+                param.menuIdentity(RBHdfTupleList,markersSubjectList,spList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,db)
         elif answer == 4:
             sys.exit(0)
     
@@ -190,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument('-s','--starting',action='store',dest='SPS',help='Text file of starting point subject - e.g. automaticIdentityCnidocytes.txt')
     parser.add_argument('-m','--orthoMode',action='store',dest='orthoMode',help='Mode for retrieving orthologs from RBH output - one2one / many2many')
     parser.add_argument('-g','--geneSource',action='store',dest='geneSource',help='Source of retrieved orthologs - RBH / orthofinder')  
+    parser.add_argument('-db','--database',action='store',dest='db',help='Path to Pfam database')
     parser.add_argument('-o','--output',action='store',dest='outputName',help='Folder name of output results')
 
     args = parser.parse_args()

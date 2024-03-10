@@ -174,7 +174,7 @@ def mafftMSA(output,domainOut,alignment):
 ################
 
 
-def processHMM(hmm_list,output,alignment,mode):
+def processHMM(hmm_list,output,alignment,mode,db):
     if len(hmm_list) > 1:
       domainOut = ':'.join(hmm_list)
     else:
@@ -183,7 +183,7 @@ def processHMM(hmm_list,output,alignment,mode):
     if not os.path.exists("output/"+output+"/"+alignment+"/"+domainOut):
         os.makedirs("output/"+output+"/"+alignment+"/"+domainOut)  
     for hmm_name in hmm_list:
-      hmm_file = hmm_extract(output,domainOut,hmm_name,'input/pfam/Pfam-A.hmm') 
+      hmm_file = hmm_extract(output,domainOut,hmm_name,db+'Pfam-A.hmm') 
     target_seqs = []
     fasta = pysam.Fastafile(db_fn) 
     hitDomainDict = retrieveHitList(hmm_list)

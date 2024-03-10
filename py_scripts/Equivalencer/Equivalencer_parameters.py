@@ -677,7 +677,7 @@ def menuIdentityDisplay():
     print("\n")
     return
 
-def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode):
+def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,db):
     """
     Description
     -----------
@@ -722,7 +722,7 @@ def menuIdentity(RBHgenesTupleList,markersDictSpList,speciesList,lifestageList,c
             elif processType=="sa":
                 id.trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList,geneSource,orthoMode)
             elif processType=="a":
-                id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode)
+                id.fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,db)
         elif answer == 3:
             return   
         

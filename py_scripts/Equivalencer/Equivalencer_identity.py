@@ -81,9 +81,13 @@ def getOrthologsPairs(RBHgenesTupleList,markersDictSpList,speciesList,lifestageL
                 clusterOrthologsShared.append(orthologsSharedList)
             clusterOrthologsDf.append(clusterOrthologsShared)
     matrixOrthologs = pd.DataFrame(clusterOrthologsDf)
-    if RBHgenesTupleList != "sameSpecies":            
+    if RBHgenesTupleList != "sameSpecies":   
+        if os.path.exists('results/id/') == False:
+            os.makedirs('results/id/')         
         matrixOrthologs.to_csv('results/id/'+geneSource+'/'+orthoMode+'/'+contMethod+'/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv")
     else:
+        if os.path.exists('results/id/sameSpecies') == False:
+            os.makedirs('results/id/sameSpecies')
         matrixOrthologs.to_csv('results/id/sameSpecies/'+speciesList[0]+'_'+lifestageList[0]+'_'+speciesList[1]+'_'+lifestageList[1]+"_orthologsId.csv")
     print("Orthologs shared lists processed for "+speciesList[0]+' '+lifestageList[0]+' & '+speciesList[1]+' '+lifestageList[1]) 
     return
@@ -1016,7 +1020,7 @@ def finalOrthologsTrimming(dfListSharedOrthologs,sharedOrthologsList):
     return sharedOrthologsListPosttrim
 
 
-def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime):
+def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SPS,outputName,subjectList,geneSource,orthoMode,startTime,db):
     """
     Description
     -----------
@@ -1173,7 +1177,7 @@ def fullyAutomaticProcess(contMethod,test,pValMethod,processType,iterationNbr,SP
     subjectNameBarplot2 = subjectNameBarplot.copy()
     horizontalBarplotGenes(nbrGenesList,subjectNameBarplot,outputName)
     horizontalBarplotOrthologs(nbrOrthologsList,subjectNameBarplot2,sharedOrthologsListConcat,outputName)
-    pfamAnnotPCO(outputName)
+    pfamAnnotPCO(outputName,db)
     genesPfamDict = linkPfamGenes(outputName)
     pfamCodeList = retrieveTranscriptionFactorsPfam()
     sequencesTF(outputName,genesPfamDict,pfamCodeList)
@@ -1375,14 +1379,14 @@ def retrieveTranscriptionFactorsPfam():
     return pfamCodeList
             
 
-def pfamAnnotPCO(outputName):
+def pfamAnnotPCO(outputName,db):
     if os.path.exists("results/final/"+outputName+"/shared_orthologs.fasta") == False:
         print("PCO were not retrieved, impossible to process Pfam annotation.\n")
     else:
         if os.path.exists("results/fina/"+outputName+"/shared_orthologs_pfam") == False: 
             print("Currently processing Pfam annotation of PCO.\n")
-            subprocess.call(['hmmsearch','--cut_ga','-o',"results/final/"+outputName+"/shared_orthologs_pfam",'--domtblout',"results/final/"+outputName+"/shared_orthologs_dt_out",
-                     "input/pfam/Pfam-A.hmm","results/final/"+outputName+"/shared_orthologs.fasta"])
+            subprocess.call(['hmmsearch','--cut_ga','-o',"results/final/"+outputName+"/shared_orthologs_pfam",'--domtblout',"results/final/"+outputName+"/shared_orthologs_dt_out ",
+                     db+"/Pfam-A.hmm","results/final/"+outputName+"/shared_orthologs.fasta"])
         print("Pfam annotation of PCO has been processed.\n")
     return
 

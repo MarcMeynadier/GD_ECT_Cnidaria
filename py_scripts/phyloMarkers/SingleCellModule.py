@@ -47,7 +47,7 @@ def scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment):
                         scanpyFile = sc.read_h5ad(pathSc+species+"_"+k+".h5ad")
                         with plt.rc_context():  
                             try:
-                                sc.pl.umap(scanpyFile,color=gene,title=j+" "+k,show=False)
+                                sc.pl.umap(scanpyFile,color=gene,title=j+" - "+species+" "+k,show=False)
                                 plt.savefig("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)+"/"+j+"_"+k+"_UMAP.pdf", bbox_inches="tight")
                                 plt.close()
                             except KeyError:

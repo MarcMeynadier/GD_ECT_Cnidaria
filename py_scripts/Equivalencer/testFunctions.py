@@ -101,11 +101,13 @@ for i in range(len(nematostellaContingency)):
 
 print(stats.fisher_exact([[105,431],[206,25705]],alternative='greater'))
 print(stats.fisher_exact([[15, 498], [586, 20397]],alternative='greater'))  
+"""
 
-
-with open('results/stat/Clytia_adult_Clytia_larva_markers_matrix_list_1000g_genomeBased_Clytia.csv','rb') as f:
+with open(r'results\basic\RBH\one2one\Astroides_Pocillopora_orthologs.csv','rb') as f:
     matrixGenome = pickle.load(f)
 
+print(matrixGenome)
+"""
 with open('results/stat/Clytia_adult_Nematostella_adult_markers_matrix_list_1000g_orthopairsBased.csv','rb') as f:
     matrixOrtho = pickle.load(f)
 
@@ -472,4 +474,4 @@ def saveFasta(input1,input2,name,geneProtDict):
     file.close()
 
 
-comparePPO("RBH_one2one_orthopairsBased_cnidocytes","RBH_one2one_orthopairsBased_neurons")
+#comparePPO("RBH_one2one_orthopairsBased_cnidocytes","RBH_one2one_orthopairsBased_neurons")
