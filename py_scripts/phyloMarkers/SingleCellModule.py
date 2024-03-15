@@ -15,7 +15,7 @@ from ete3 import Tree
 from PhylogeneticModule import treeGenerator
 
 
-def scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment):
+def scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment,figtreePath):
     if not os.path.exists("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy"):
         os.makedirs("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy") 
     with open("input/speciesLifestage.txt","r") as f:
@@ -36,7 +36,7 @@ def scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment):
                 os.makedirs("output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)) 
                 pathOutput = "output/"+output+"/"+alignment+"/"+domainOut+"/scanpy/subtree"+str(countSubtrees)
             createSubtree(tree,i,pathOutput)
-            treeGenerator(pathOutput,"subTree")
+            treeGenerator(pathOutput,"subTree",figtreePath)
             paralogsList(pathOutput,i)
             for j in i:
                 abbrv = j.split("|")[0]

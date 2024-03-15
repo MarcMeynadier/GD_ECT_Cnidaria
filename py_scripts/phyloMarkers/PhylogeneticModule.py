@@ -5,6 +5,7 @@
 ###########################################
 
 import os
+import subprocess
 import requests
 import regex as re
 from bs4 import BeautifulSoup
@@ -12,9 +13,9 @@ import numpy as np
 import pandas as pd
 from ete3 import Tree
 
-def processPhylogenetic(output,domainOut,msaInput,alignment):
+def processPhylogenetic(output,domainOut,msaInput,alignment,figtreePath):
   tree = treeBuild(output,domainOut,msaInput,alignment) # tree in Newick
-  treeGenerator("output/"+output+"/"+alignment+"/"+domainOut +"/MSA","Tree") # tree in pdf
+  treeGenerator("output/"+output+"/"+alignment+"/"+domainOut +"/MSA","Tree",figtreePath) # tree in pdf
   if os.path.exists("output/metazoanTaxo.txt") == False:
     dictMetazoan = parseMetazoanList()
     createTaxoFile(dictMetazoan)
@@ -26,13 +27,12 @@ def processPhylogenetic(output,domainOut,msaInput,alignment):
 
 def treeBuild(output,domainOut,filtered_fn,alignment):
   output_file = "output/"+output+"/"+alignment+"/"+domainOut +"/MSA/Tree.tree" 
-  #fasttreePath = "/Users/mmeynadier/Documents/PhD/scripts/tools/FastTree/FastTree"
   cmd = "FastTree " +filtered_fn+" > "+output_file 
   os.system(cmd)
   return output_file
 
 
-def treeGenerator(path,fileName):
+def treeGenerator(path,fileName,figtreePath):
     with open(path + "/" + fileName+ ".tree","r") as f:
         l = f.readline()
     f.close()
@@ -41,9 +41,9 @@ def treeGenerator(path,fileName):
         dim = 300
     elif countGene > 30:
         dim = 300 + 10 * countGene
-    figtreePath = "java -jar /mnt/c/docRoot/coding//tools/FigTree_v1.4.4/lib/figtree.jar"
-    cmd = figtreePath + " -width " + str(dim) + " -height " + str(dim) + " -graphic PDF "+ path + "/" + fileName+ ".tree " + path + "/" + fileName +".pdf"
+    cmd = "java -jar " + figtreePath + " -width " + str(dim) + " -height " + str(dim) + " -graphic PDF "+ path + "/" + fileName+ ".tree " + path + "/" + fileName +".pdf"
     os.system(cmd)
+    return
 
 
 def parseMetazoanList():

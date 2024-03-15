@@ -792,6 +792,8 @@ def extractClusterLowerPvalue(statMatrix,inputClusterList):
             outputClust = statMatrix.columns[(statMatrix == -j).iloc[int(i)]]
             outputClusterList.append(int(outputClust[0]))
     outputClusterList = list(set(outputClusterList))
+    print("YOO c la")
+    print(outputClusterList)
     return outputClusterList
 
 
@@ -848,7 +850,8 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
             forbiddenClusters = [int(element) for element in forbiddenClusters]
             if (speciesList[1]==sp and lifestageList[1]==lifestage):
                 outputClusterList = list(set(outputClusterList) - set(forbiddenClusters)) 
-    scanpyOutput = basic.getAllMarkers(speciesList[1],lifestageList[1]) 
+    scanpyOutput = basic.getAllMarkers(speciesList[1],lifestageList[1])
+
     if speciesList[0] != speciesList[1]:
         targetGenes = []
         RBHgenesTupleList = basic.getTupleList(speciesList,orthoMode,geneSource) 
@@ -873,6 +876,10 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
                         if j in targetGenes:
                             sharedGenesList.append(j)
                 if len(sharedGenesList) != 0:
+                    #print("ICIIII")
+                    #print(speciesList) ; print(lifestageList)
+                    #print(sharedGenesList)
+                    #print(k)
                     verifiedCluster.append(k)
     else:
         for i in outputClusterList:
@@ -887,6 +894,13 @@ def verifyClusterIdentity(statMatrix,inputClusterList,speciesList,lifestageList,
     verifiedCluster = list(set(verifiedCluster))
     lightUpClusters(verifiedCluster,speciesList[1],lifestageList[1],color,outputName)
     return verifiedCluster
+
+
+
+#def verifyClusterIdentity2():
+
+
+
 
 
 def trimOrthologsMatricesSemiAutomatic(contMethod,test,pValMethod,processType,SPS,outputName,subjectList,geneSource,orthoMode):

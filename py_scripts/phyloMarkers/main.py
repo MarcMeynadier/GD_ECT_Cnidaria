@@ -10,7 +10,7 @@ from SingleCellModule import *
 ###########################################
 
 def main(args):
-  alignment = args.alignment ; output = args.output ; query = args.query ; mode = args.mode ; domains = args.domain ; db = args.db
+  alignment = args.alignment ; output = args.output ; query = args.query ; mode = args.mode ; domains = args.domain ; db = args.db ; figtreePath = args.figtreePath
   if query != None and domains != None:
     print("It is mandatory to choose between a FASTA input and a list of proteic domains.")
   elif query != None:
@@ -24,8 +24,8 @@ def main(args):
       else:
         print("Please choose a valid multiple alignment method\n")
         exit()
-      dictTaxo,paralogsFamilies = processPhylogenetic(output,domainOut,msaInput,alignment) 
-      scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment)
+      dictTaxo,paralogsFamilies = processPhylogenetic(output,domainOut,msaInput,alignment,figtreePath) 
+      scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment,figtreePath)
   elif domains != None:
     hmm_list = domains.split(',')
     if alignment == "HMM":
@@ -35,8 +35,8 @@ def main(args):
     else:
       print("Please choose a valid multiple alignment method\n")
       exit()
-    dictTaxo,paralogsFamilies = processPhylogenetic(output,domainOut,msaInput,alignment) 
-    scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment)
+    dictTaxo,paralogsFamilies = processPhylogenetic(output,domainOut,msaInput,alignment,figtreePath) 
+    scExpr(output,domainOut,dictTaxo,paralogsFamilies,alignment,figtreePath)
 
 ###########################################
 
@@ -48,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('-d','--domain',action='store',dest='domain',help='Domain name')  
     parser.add_argument('-m','--mode',action='store',dest='mode',help='Mode name')   
     parser.add_argument('-db','--database',action='store',dest='db',help='Path to Pfam database directory')
+    parser.add_argument('-f','--figtreePath',action='store',dest='figtreePath',help='Path to the FigTree tool')    
     args = parser.parse_args()
 
     print(args)
